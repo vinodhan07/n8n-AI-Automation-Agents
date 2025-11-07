@@ -1,0 +1,201 @@
+{
+  "name": "Lovable and N8N",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c82e42f4-a8d8-4467-ad81-ab7f514c355b",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        128,
+        -128
+      ],
+      "id": "cf5f0455-15d7-497a-8d09-d7f4f2b28dcf",
+      "name": "Webhook",
+      "webhookId": "c82e42f4-a8d8-4467-ad81-ab7f514c355b"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "= The problem: {{ $json.body.problem }}\n Tone:{{ $json.body.tone }}",
+        "options": {
+          "systemMessage": "=# Overvier \nYou are an AI Excuse Generator, Your job is to create clever, creative and context-appriate excuses that someone could use to avoid or get out of a situation. \n\n## Instructions\n1) You will receive a problem as well as a tone for the excuse.\n2) Possible tones include:\n- Realistic: Believable and reasonable\n- Funny: Lighthearted and humorous\n- Ridiculous: Over-the-top and clearly fake, but entertaining\n- Outrageous: Wild and dramatic, pushing the limits of believability\n3) Your excuse should be 1-3 sentences long and match the selected tone.\n\n##output\n- Only return the excuse \n- Add a touch of humor to the excess."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        400,
+        -128
+      ],
+      "id": "d52f718f-4248-493d-aec5-48fd674ab42a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        112
+      ],
+      "id": "ada32efb-a621-4ec4-b338-7d8ae9e00b69",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "8L8eZHKKiVmSfOhB",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        752,
+        -128
+      ],
+      "id": "5f65b819-5860-4309-923f-e33436d5d477",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "content": "**input triger from Lovable**",
+        "height": 220,
+        "width": 280,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        32,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "d1d4c765-2bab-4c08-aab9-95438d377f23",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent to give output ",
+        "height": 400,
+        "width": 340
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "2b3c5581-f6b0-43cc-bf90-7229348dc21a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "**Output return to Lovable AI**",
+        "height": 260,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "a97d20ab-2a3f-4f0e-9d7c-25d80ea94040",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## System Flow Explanation\n\n**Input Trigger from Lovable (Webhook Call)**\n\nThe process begins when Lovable AI sends an event or data payload via a POST request to a webhook endpoint. This serves as the trigger to activate the workflow.\n\n**Webhook Receives Input**\n\nThe webhook module captures the POST data and passes it along to the next module for processing. This data could include user queries, commands, or context-specific information from Lovable AI.\n\n**AI Agent Processes the Input**\n\nThe data is sent to an AI Agent (configured with OpenAI's Chat Model). This agent is capable of leveraging tools like memory and external tools, and formulates a contextual and intelligent response using the underlying OpenAI Chat Model.\n",
+        "height": 480,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -416,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "bb05ad28-6b2d-4eb1-9689-b4c6ee5d2860",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "\n**Generate Response via OpenAI Model**\n\nThe OpenAI Chat Model interprets the input, processes it through the AI Agent, and generates a coherent, relevant response. This response is passed back to the pipeline for delivery.\n\n**Output Returned to Lovable AI**\n\nThe final output is sent back via a respond-to-webhook module, closing the loop by delivering the AI-generated response back to the Lovable AI system, completing the real-time interaction.",
+        "height": 260,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        784,
+        128
+      ],
+      "typeVersion": 1,
+      "id": "664cbdab-7b10-44a0-a383-5ad513e42942",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8c37c6c5-2b5c-4917-a844-694e112681e5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41acbd99e23ab21a801d428e8bb610116cf3a2e994378580d090eb0860693a56"
+  },
+  "id": "tF0CEPUdKWdr35Xj",
+  "tags": []
+}

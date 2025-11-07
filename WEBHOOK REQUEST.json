@@ -1,0 +1,177 @@
+{
+  "name": "WEBHOOK REQUEST",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.browseract.com/v2/workflow/run-task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_id",
+              "value": "50570920843121748"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        16
+      ],
+      "id": "53c65340-a493-41a7-9964-0ef8ab0d0ec0",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "d6YnFbXGkjbZiiQP",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        16
+      ],
+      "id": "bf928f12-7185-482b-897e-189e80f83e59",
+      "name": "Wait",
+      "webhookId": "c0cae177-be85-443d-b087-876b44ee143d"
+    },
+    {
+      "parameters": {
+        "url": "https://api.browseract.com/v2/agent/get-task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        16
+      ],
+      "id": "b6311110-694a-42b8-916a-8b9c0fb0cada",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "d6YnFbXGkjbZiiQP",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.output.files[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        16
+      ],
+      "id": "8924b7c7-de3e-4943-b926-a5ec2a821a82",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        128
+      ],
+      "id": "df3da16b-0fbf-46ac-a648-100987f5c5c5",
+      "name": "Telegram Trigger",
+      "webhookId": "8f6f67f2-7fff-4fae-b859-b59c96a55ece",
+      "credentials": {
+        "telegramApi": {
+          "id": "OaatfpTJcfp7FxaP",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "052cf370-d416-42f2-9d80-0e43fadf7596",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41acbd99e23ab21a801d428e8bb610116cf3a2e994378580d090eb0860693a56"
+  },
+  "id": "yF0AutmPkUFISYaC",
+  "tags": []
+}
