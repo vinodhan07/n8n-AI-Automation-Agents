@@ -98,8 +98,7 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "Bearer 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"
+              "name": "Authorization"
             },
             {
               "name": "Content-Type",
@@ -362,8 +361,7 @@
             {
               "id": "bf0910e1-b757-4852-9341-a7792161f89b",
               "name": "ACCESS_TOKEN",
-              "type": "string",
-              "value": "ya29.a0AS3H6NwGfpE97i946yn0JBspmeV0O-aWDjS0j9M3eM_08RVSzNvB5rIl2-nYMnzj1mikmKrJjMkZ5yWKn5wUFoBUzPMjtzy-pcERKVOjR5cHb3pxsYBVfYty9WBMoBNhEdNc5hE4MXQQjDAf_0LA_V75Ge52JEmUhTrxgAHCFLP2gRv1NNf3OMlo3iiXV8oAZRswQBxAfMe4tV5DF-Zi-4wbtJLDGlpMoeH4CqnugUQzxrWYUonvxKQnsIyt76-jI5WdtAI8zNSWclCa-UpbcJGZDs1iHtLDD9CuFTkFmidPxzF8A8FCAuyQwNtnvwPoDfoTc1n7MQaCgYKAVwSARUSFQHGX2MiW2PSJJz3ZGU81BzZapiQnA0337"
+              "type": "string"
             },
             {
               "id": "17954335-b96b-4813-9c4a-20817d675448",
