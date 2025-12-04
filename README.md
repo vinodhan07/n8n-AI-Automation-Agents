@@ -1,6 +1,6 @@
 # 🌟 n8n AI Automation Agents
 
-![Banner](assets/banner.png)
+![Banner](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpV4cHk20oPG93VkN89oIN3pF5a4Sxs471ZceNxiMw8nEZfghg4l4ogUOjwG4s3lj4SQ&usqp=CAU)
 
 ## 🚀 Overview
 n8n AI Automation Agents is a collection of powerful, ready‑to‑use AI‑driven automation workflows designed for n8n.
