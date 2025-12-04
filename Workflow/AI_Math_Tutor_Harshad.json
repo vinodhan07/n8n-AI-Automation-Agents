@@ -1,0 +1,594 @@
+{
+  "name": "Math Tutor",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52a2f0d9-3137-4f6e-a2c1-8285694f6159",
+              "name": "choices[0].message.content",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ec9efee0-9244-4a4f-a454-c9fb4452a0fc",
+      "name": "Get only the text",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        3600,
+        3760
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "id": "e0f9f70d-d790-4d4b-95ae-497ca18c7254",
+      "name": "convert the image file to base64",
+      "type": "n8n-nodes-base.extractFromFile",
+      "position": [
+        3152,
+        3760
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.photo[0].file_id }}"
+      },
+      "id": "293b9508-6814-4ef2-bb20-6d1819f4bc3d",
+      "name": "Receive the File",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        2928,
+        3760
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "fe4c9f82-da9e-42c5-abca-ecfa962baff7",
+      "credentials": {
+        "telegramApi": {
+          "id": "gdERBeXJQeTkttUD",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Set Up\n\nOpen the Telegram app and search for the BotFather user (@BotFather)\nStart a chat with the BotFather\nType /newbot to create a new bot\nFollow the prompts to name your bot and get a unique API token\nSave your access token and username\n## Start Using\nOnce you set the Bot, you can send the image. \nThe second node get the image and send to the next node to be convert in base64, that is required by Groq in the documentation.\n\n ",
+        "height": 521,
+        "width": 675,
+        "color": 4
+      },
+      "id": "da36efe1-82bc-4ffa-a4d7-41c09bb40c7b",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2624,
+        3408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Using GROQ API\n\nNow we send the image in base64 to the API and get the description of the image.",
+        "height": 525,
+        "width": 442
+      },
+      "id": "c0c23f45-7324-44e9-97ef-99302f28f2c6",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3328,
+        3408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Describe this image in great detail\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/jpeg;base64,{{ $json.data }}\"\n          }\n        }\n      ]\n    }\n  ],\n  \"model\": \"meta-llama/llama-4-scout-17b-16e-instruct\"\n}",
+        "options": {}
+      },
+      "id": "37425825-02ed-442f-a4a6-e17725af9562",
+      "name": "HTTP Request GROQ llama",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3376,
+        3760
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.choices[0].message.content }}\n\n\nfind the mathematical expression from the above message and perform the mathematical operation.\n\nFor example if the above contains:\n2+2, perform 2+2 which is 4.\n\nand give this as a prompt:\n\"Generate a short video of a female teacher in a classroom explaining a basic math problem on a whiteboard. The problem is math_problem. She should turn to the board, write math_problem = answer, and speak clearly as she explains how to solve it. The environment should be a simple classroom with a visible whiteboard. Keep it realistic, like an actual teacher teaching students.\"\n\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        3856,
+        3536
+      ],
+      "id": "beb3bb3f-e591-4d88-baf1-76962a4dfa45",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        3776
+      ],
+      "id": "97947d55-c505-4df1-9053-79152a79592a",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1SyDvn5em5m4H1KG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"math_prolem\": \"4+4\",\n\t\"asnwer\": 8, \n     \"prompt\":\"Generate a short video of a female teacher in a classroom explaining a basic math problem on a whiteboard. The problem is math_problem. She should turn to the board, write math_problem = answer, and speak clearly as she explains how to solve it. The environment should be a simple classroom with a visible whiteboard. Keep it realistic, like an actual teacher teaching students.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        4096,
+        3776
+      ],
+      "id": "2ae8ed0a-3e2b-4fd6-9385-db6f11e41499",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        3968,
+        3776
+      ],
+      "id": "be2ad072-e7f2-422e-ba40-6edc056c456b",
+      "name": "Calculator1"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "response.videos[0].bytesBase64Encoded",
+        "options": {
+          "fileName": "video.mp4",
+          "mimeType": "video/mp4"
+        }
+      },
+      "id": "6aadcea6-0a5a-4c2e-bd9f-769432ece2b2",
+      "name": "Convert to File1",
+      "type": "n8n-nodes-base.convertToFile",
+      "position": [
+        5184,
+        3760
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        5408,
+        3760
+      ],
+      "id": "73ab439e-0ed8-49db-a7b2-88c4d973f772",
+      "name": "Send a video",
+      "webhookId": "c551e4db-48f4-4964-8699-6be16f4d7eb6",
+      "credentials": {
+        "telegramApi": {
+          "id": "gdERBeXJQeTkttUD",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Cal + Prompt\n\nNow we calculate the given equation and also generate a prompt for veo3",
+        "height": 525,
+        "width": 442,
+        "color": 3
+      },
+      "id": "7db8d148-b79a-40b9-8219-118b752e0761",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3776,
+        3408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Using Veo3 API to generate AI Video\n\n",
+        "height": 525,
+        "width": 890,
+        "color": 5
+      },
+      "id": "cf61dd17-b093-4756-b988-ea393da72f20",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4240,
+        3408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Convert Video + Send Telegram\n\n",
+        "height": 525,
+        "width": 458,
+        "color": 7
+      },
+      "id": "f7d52dd6-cced-42e2-aad3-bffbaee41aa7",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5152,
+        3408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $('Setting').item.json.API_ENDPOINT }}/v1/projects/{{ $('Setting').item.json.PROJECT_ID }}/locations/{{ $('Setting').item.json.LOCATION }}/publishers/google/models/{{ $('Setting').item.json.MODEL_VERSION }}:fetchPredictOperation\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Setting').item.json.ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"operationName\": \"{{ $json.name }}\"\n}\n",
+        "options": {}
+      },
+      "id": "58692d0c-791e-4581-8011-4fb36c255864",
+      "name": "Vertex AI-fetch",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        4960,
+        3760
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $json.API_ENDPOINT }}/v1/projects/{{ $json.PROJECT_ID }}/locations/{{ $json.LOCATION }}/publishers/google/models/{{ $json.MODEL_VERSION }}:predictLongRunning",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"endpoint\": \"projects/n8n-project-440404/locations/us-central1/publishers/google/models/veo-3.0-generate-preview\",\n  \"instances\": [\n    {\n      \"prompt\": {{ JSON.stringify($json.TEXT_PROMPT) }}\n    }\n  ],\n  \"parameters\": {\n    \"aspectRatio\": \"16:9\",\n    \"sampleCount\": 1,\n    \"durationSeconds\": \"8\",\n    \"personGeneration\": \"allow_all\",\n    \"addWatermark\": true,\n    \"includeRaiReason\": true,\n    \"generateAudio\": true\n  }\n}\n",
+        "options": {}
+      },
+      "id": "65d9699c-fa45-45d4-a791-5cb9a7678882",
+      "name": "Vertex AI-VEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        4512,
+        3760
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cedc3de-6221-4d7e-a6c8-82f4cb9cf0e9",
+              "name": "PROJECT_ID",
+              "type": "string",
+              "value": "basic-cat-467310-b5"
+            },
+            {
+              "id": "90019751-e2d5-4764-9bf9-e13916dcc528",
+              "name": "MODEL_VERSION",
+              "type": "string",
+              "value": "veo-3.0-generate-preview"
+            },
+            {
+              "id": "67ab205c-82b3-4263-99c4-c906a0ca6ae9",
+              "name": "LOCATION",
+              "type": "string",
+              "value": "us-central1"
+            },
+            {
+              "id": "413415fb-60c5-4d0d-ac45-1e6178a55227",
+              "name": "TEXT_PROMPT",
+              "type": "string",
+              "value": "={{ $json.output.prompt }}"
+            },
+            {
+              "id": "bf0910e1-b757-4852-9341-a7792161f89b",
+              "name": "ACCESS_TOKEN",
+              "type": "string",
+              "value": "ya29.a0AS3H6NwGfpE97i946yn0JBspmeV0O-aWDjS0j9M3eM_08RVSzNvB5rIl2-nYMnzj1mikmKrJjMkZ5yWKn5wUFoBUzPMjtzy-pcERKVOjR5cHb3pxsYBVfYty9WBMoBNhEdNc5hE4MXQQjDAf_0LA_V75Ge52JEmUhTrxgAHCFLP2gRv1NNf3OMlo3iiXV8oAZRswQBxAfMe4tV5DF-Zi-4wbtJLDGlpMoeH4CqnugUQzxrWYUonvxKQnsIyt76-jI5WdtAI8zNSWclCa-UpbcJGZDs1iHtLDD9CuFTkFmidPxzF8A8FCAuyQwNtnvwPoDfoTc1n7MQaCgYKAVwSARUSFQHGX2MiW2PSJJz3ZGU81BzZapiQnA0337"
+            },
+            {
+              "id": "17954335-b96b-4813-9c4a-20817d675448",
+              "name": "API_ENDPOINT",
+              "type": "string",
+              "value": "us-central1-aiplatform.googleapis.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b77a095-a64f-4498-8e5a-a3f09dee369a",
+      "name": "Setting",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        4288,
+        3760
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "83301702-18d7-4627-b7bb-04b334d9c3e2",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        4736,
+        3760
+      ],
+      "typeVersion": 1.1,
+      "webhookId": "ca4136c0-182a-43e0-b234-079ffe826eea"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "*"
+        ],
+        "additionalFields": {}
+      },
+      "id": "57aa5648-f627-4f69-89de-dc49f183a154",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "position": [
+        2704,
+        3760
+      ],
+      "webhookId": "6021108f-f0e8-4d7a-918b-f49baa28ba85",
+      "typeVersion": 1.1,
+      "credentials": {
+        "telegramApi": {
+          "id": "gdERBeXJQeTkttUD",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive the File": {
+      "main": [
+        [
+          {
+            "node": "convert the image file to base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get only the text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert the image file to base64": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request GROQ llama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request GROQ llama": {
+      "main": [
+        [
+          {
+            "node": "Get only the text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Setting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Send a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vertex AI-fetch": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vertex AI-VEO": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setting": {
+      "main": [
+        [
+          {
+            "node": "Vertex AI-VEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Vertex AI-fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Receive the File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "db3eb018-6076-4eff-9685-cc2fa3c9944b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1366dbb67f40f700e85de32e589f5372e389fdb3f1ae343e43e7a4f8207a2267"
+  },
+  "id": "BmD8XY35ilaQmb5d",
+  "tags": []
+}

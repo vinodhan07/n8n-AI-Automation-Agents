@@ -1,0 +1,123 @@
+{
+  "name": "Lovable and N8N",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c82e42f4-a8d8-4467-ad81-ab7f514c355b",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        360,
+        -120
+      ],
+      "id": "cf5f0455-15d7-497a-8d09-d7f4f2b28dcf",
+      "name": "Webhook",
+      "webhookId": "c82e42f4-a8d8-4467-ad81-ab7f514c355b"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "= The problem: {{ $json.body.problem }}\n Tone:{{ $json.body.tone }}",
+        "options": {
+          "systemMessage": "=# Overvier \nYou are an AI Excuse Generator, Your job is to create clever, creative and context-appriate excuses that someone could use to avoid or get out of a situation. \n\n## Instructions\n1) You will receive a problem as well as a tone for the excuse.\n2) Possible tones include:\n- Realistic: Believable and reasonable\n- Funny: Lighthearted and humorous\n- Ridiculous: Over-the-top and clearly fake, but entertaining\n- Outrageous: Wild and dramatic, pushing the limits of believability\n3) Your excuse should be 1-3 sentences long and match the selected tone.\n\n##output\n- Only return the excuse \n- Add a touch of humor to the excess."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        620,
+        -120
+      ],
+      "id": "d52f718f-4248-493d-aec5-48fd674ab42a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        100
+      ],
+      "id": "ada32efb-a621-4ec4-b338-7d8ae9e00b69",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "8L8eZHKKiVmSfOhB",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        -120
+      ],
+      "id": "5f65b819-5860-4309-923f-e33436d5d477",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c53593c8-a899-4b7a-879d-646bb9af2a26",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41acbd99e23ab21a801d428e8bb610116cf3a2e994378580d090eb0860693a56"
+  },
+  "id": "tF0CEPUdKWdr35Xj",
+  "tags": []
+}

@@ -1,0 +1,517 @@
+{
+  "name": "Email Inbox Assistant to Manage Leads (Simple Workflow to Get Started with n8n)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1216,
+        -80
+      ],
+      "id": "d9c85b52-235c-4f74-9d2f-22d3fbffb5ce",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.to.value[0].name }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "senderName",
+              "description": "Extaract the sender's name from the email. If the name is not available , return the empty string.",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an Extraction Expect, Identify and extaract only the key information from the text. If the Required attribute is not present, return an empty string as its value"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -992,
+        -80
+      ],
+      "id": "9ffe4241-8194-4eb0-840d-24dfbabde565",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        144
+      ],
+      "id": "945cffa6-c0c8-414a-be76-d2806c8b8fab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DJVt176L1kX6wF7d",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2f3ccb93-ec76-4629-871b-fc650fda5ed1",
+              "leftValue": "={{ $json.output.senderName }}",
+              "rightValue": "is not empty",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        -80
+      ],
+      "id": "be6c8718-94da-4a23-bbff-bec7a433e6ed",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d239c6a6-64e6-437c-b48b-bdecd090010b",
+              "name": "Introduction",
+              "value": "Hey",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -416,
+        16
+      ],
+      "id": "3818dbde-e8ec-4513-8eb6-fa6e7142ef63",
+      "name": "No Name"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "875d58b2-8ba3-482c-afa3-ba11aa98e66e",
+              "name": "Introduction",
+              "value": "=Dear  {{ $json.output.senderName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -416,
+        -176
+      ],
+      "id": "a59771e8-fb01-4dab-a849-16782185c2a6",
+      "name": "Name Found"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "Introduction",
+        "joinMode": "keepNonMatches",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -192,
+        -80
+      ],
+      "id": "00ebf3e1-3d42-4eeb-92eb-d071c4ede260",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "df5bae8b-78ab-4130-947a-476c16f9bb7c",
+              "name": "introduction",
+              "value": "={{ $json.Introduction }}",
+              "type": "string"
+            },
+            {
+              "id": "53a94e37-322c-4551-ac27-a16c245883c4",
+              "name": "emailBody",
+              "value": "={{ $('Gmail Trigger').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "bcce37bc-7e93-4a73-815b-105b9b6c2fd4",
+              "name": "messageID",
+              "value": "={{ $('Gmail Trigger').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "acb51146-3aed-4592-8fc4-109f01f6b8b3",
+              "name": "threadID",
+              "value": "={{ $('Gmail Trigger').item.json.threadId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        -80
+      ],
+      "id": "5fd6f67e-515b-4a75-9dde-f7149bcf5ca3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.emailBody }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "n8n",
+              "description": "This Includes the inquire about the Course Services, availablity or related details."
+            },
+            {
+              "category": "linkedin messages ",
+              "description": "This includes abou the Linkedin Messages form LinkedIn"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Please share with me the specific (categories) that you would like to use so I can perform the analysis correctly. Once you have provided the categories, I will deliver the answer in JSON format, without explanations."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -80
+      ],
+      "id": "9f696d6b-e104-4185-b105-f937ac0ab6a9",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.messageID }}",
+        "labelIds": [
+          "Label_695300478639438017"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        -176
+      ],
+      "id": "2aa00ebc-12e7-4c1a-b11d-a857dd9f7824",
+      "name": "Add label to message",
+      "webhookId": "49f335f9-d3e1-4076-be29-f9cad77c853c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        144
+      ],
+      "id": "4492b51f-96ac-4704-95d7-6ed920edc8ef",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DJVt176L1kX6wF7d",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.messageID }}",
+        "labelIds": [
+          "Label_7370340708637873513"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        16
+      ],
+      "id": "11050382-ec64-474a-b398-42608fbf220c",
+      "name": "Add label to message1",
+      "webhookId": "49f335f9-d3e1-4076-be29-f9cad77c853c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.id }}",
+        "message": "={{ $('Text Classifier').item.json.introduction }}\n\nThank you for contacting Lead Gen Man! We're excited to learn more about your needs and discuss how we can help you.\n\nYour request has been received, and a member of our team is reviewing the details. We'll get back to you within 24 hours with more information.\n\nIn the meantime, feel free to visit our website to learn more about our services, or contact us via WhatsApp:\nhttps://vinodhan.vercel.app/\n\n\nWe look forward to connecting with you!\n\nBest regards,\nRtr Vinodhan\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -176
+      ],
+      "id": "f593df3c-0c90-4e34-aef1-598dca477c50",
+      "name": "Reply to a message",
+      "webhookId": "c6c93048-ea14-44ca-ba62-760c2666b49f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.id }}",
+        "message": "={{ $('Text Classifier').item.json.introduction }}\n\nThank you for getting in touch!\nWe’ve received your message regarding your Conditon Of My Profile.\nOur team will review it and get back to you within 2 business days with the required information or assistance.\n\nThank you for your patience,\n\nBest regards,\nRtr Vinodhan",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        16
+      ],
+      "id": "4dda4f9d-862e-4ddb-bd38-ed00b2392a72",
+      "name": "Reply to a message1",
+      "webhookId": "c6c93048-ea14-44ca-ba62-760c2666b49f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Name Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name Found": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Name": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message1": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27360c81-d52c-49ce-b886-84bf9724e1de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "RUzRFz5C5I7uI5y0",
+  "tags": []
+}

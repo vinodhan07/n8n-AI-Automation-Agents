@@ -1,0 +1,354 @@
+{
+  "name": "Company technology and tech tech",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8ae8e41a-a3f8-4292-893d-6b8f073b0023",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk",
+          "mode": "list",
+          "cachedResultName": "Company Domain",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        0
+      ],
+      "id": "6084bc8d-ff36-4f54-a67b-17fe538cbab2",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BABF9fd2GiPmlycd",
+          "name": "Google Sheets Cred"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a921544d-b11c-44b2-a79f-650e06783efc",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/builtwith.com/{{ $('Google Sheets').item.json['Company Domain'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer jina_5272ae9198de429682132d2c2b7293c4xCPzLb_6bxR0n0Yi681_hZqOjNzk"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "30308cde-3ac4-4db5-b876-64649acb551b",
+      "name": "Tech technologies sourcing"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Analyze the received content and identify only the technologies used by the company. Ignore all other information. Response format: Present the results as a structured list organized by categories. Each category will group similar technologies. Example classification:  Hosting & Servers: [Technology names] CMS & Content Management: [Technology names] Analysis & Tracking Tools: [Technology names] Security & Performance: [Technology names] Other technologies: [Technology names]  Constraints:  Do not include irrelevant text (advertisements, external sources, etc.). Limit to technologies specific to the analyzed company. Provide a clear and concise response."
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        880,
+        0
+      ],
+      "id": "9e83ac75-1105-435a-b458-4b0675724d20",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        840,
+        220
+      ],
+      "id": "66c83535-a2cd-4dd0-8767-f927425ebafc",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "9WpWmiE8A7Gl3BYM",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"technologies\": {\n    \"Hosting & Servers\": [\n      \"Cloudflare\",\n      \"AWS CloudFront\"\n    ],\n    \"CMS & Content Management\": [\n      \"WordPress\"\n    ],\n    \"Analysis & Tracking Tools\": [\n      \"Google Analytics\",\n      \"Hotjar\"\n    ],\n    \"Security & Performance\": [\n      \"reCAPTCHA\",\n      \"SSL by Let's Encrypt\"\n    ],\n    \"Other technologies\": [\n      \"Google Tag Manager\",\n      \"Facebook Pixel\"\n    ]\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1020,
+        220
+      ],
+      "id": "52c4782a-addf-44eb-b070-51191a0c68e1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk",
+          "mode": "list",
+          "cachedResultName": "Company Domain",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company Domain": "={{ $('Google Sheets').item.json['Company Domain'] }}",
+            "Hosting & Servers": "={{ $json.output.technologies['Hosting & Servers'].join(', ') }}",
+            "CMS & Content Management": "={{ $json.output.technologies['CMS & Content Management'].join(', ') }}",
+            "Analysis & Tracking Tools": "={{ $json.output.technologies['Analysis & Tracking Tools'].join(',') }}",
+            "Security & Performance": "={{ $json.output.technologies['Security & Performance'].join(', ') }}",
+            "Other Technologies": "={{ $json.output.technologies['Other technologies'].join(\", \") }}"
+          },
+          "matchingColumns": [
+            "Company Domain"
+          ],
+          "schema": [
+            {
+              "id": "Company Domain",
+              "displayName": "Company Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Hosting & Servers",
+              "displayName": "Hosting & Servers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CMS & Content Management",
+              "displayName": "CMS & Content Management",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Analysis & Tracking Tools",
+              "displayName": "Analysis & Tracking Tools",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Security & Performance",
+              "displayName": "Security & Performance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Other Technologies",
+              "displayName": "Other Technologies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1240,
+        0
+      ],
+      "id": "53cbf134-e27d-4bda-82dd-abc6e3e9680a",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BABF9fd2GiPmlycd",
+          "name": "Google Sheets Cred"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tech technologies sourcing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tech technologies sourcing": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9b5c5050-795a-4891-adfb-03c2877e0689",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eae46237f0b03e1e21495b9d127d17ad71e5e7504c7d7b1084f9a3d34657c561"
+  },
+  "id": "qhMK0dSEuklgqmze",
+  "tags": []
+}

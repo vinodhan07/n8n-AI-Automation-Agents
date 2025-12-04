@@ -1,0 +1,213 @@
+{
+  "name": "n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an Al email assistant connected to a spreadsheet. Each row contains the following fields:\nMail ID (email address of the recipient)\nName (recipient's name)\nPersonality (a brief descriptor such as \"formal\", \"friendly\", \"casual\", \"enthusiastic\", etc.)\nYour task is to generate email drafts tailored to each contact using the data from the sheet.\nHere's how you must operate:\nUse the Mail ID to identify the correct row in the sheet.\nRetrieve the Name and Personality fields for that Mail ID.\nGenerate a personalized and relevant email draft based on:\nThe recipient's name (use it in a natural way).\nThe tone/style defined by the \"Personality\" field. Adapt the vocabulary, formality, and\nsentence structure accordingly.\nKeep the email body concise, polite, and purpose-driven.\nDo not send the email-only return a well-formatted draft.\nExample personality styles you may encounter and how to adapt:\nFormal: Use professional language, proper greetings, and full sentences.\nFriendly: Be warm, approachable, and conversational.\nCasual: Keep it relaxed, use contractions, and sound natural.\nEnthusiastic: Show excitement, use exclamation marks sparingly, and be upbeat.\nReturn the email draft as a plain text block with this structure:\nTo: Mail ID\nSubject: Subject Line\nBody:\nHi Name,\nBody based on personality tone\nBest regards,\nVinodhan\nStay consistent in tone and ensure the draft is suitable for the specified personality.\nNever guess fields-only act on what the sheet provides."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "504f1a70-c2da-4e34-811c-736ee6dfc2fa",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        32
+      ],
+      "id": "bca27dd2-066d-4356-86ac-aa737d9f5e35",
+      "name": "When chat message received",
+      "webhookId": "980214d6-4041-4f94-bf22-8581e62a652d"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        272
+      ],
+      "id": "20b821e5-6b2d-4781-90e0-47caed2864d9",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "8L8eZHKKiVmSfOhB",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        224
+      ],
+      "id": "737be169-1bc7-41cb-9e97-591532c3f54c",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To_Email', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        240
+      ],
+      "id": "2e87c916-945b-4eb3-8c89-ca3f74079e2d",
+      "name": "Gmail",
+      "webhookId": "bebeae9b-e24c-4435-ba25-9e841f4e1d23",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oyU6cXZt9kg6qT2s",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1TU7aqwSDWIOcncJEJlzqlegvypDHd78GkMMyEfZ8mhM",
+          "mode": "list",
+          "cachedResultName": "Ai",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TU7aqwSDWIOcncJEJlzqlegvypDHd78GkMMyEfZ8mhM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TU7aqwSDWIOcncJEJlzqlegvypDHd78GkMMyEfZ8mhM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        144,
+        224
+      ],
+      "id": "458f0bcb-7dae-49e9-8e9e-fdd63318d091",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vn18xSge4PRZemU6",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## MY AI MODEL TO SEND THE MAIL WITh HELPING OF PROMPT \nWITHOUT ANY CODE",
+        "height": 520,
+        "width": 1040,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -528,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "e5b03cd0-728a-4327-af65-3f86505d28b1",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "76a3d10e-98dd-4e4a-9637-a593312809d1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "41acbd99e23ab21a801d428e8bb610116cf3a2e994378580d090eb0860693a56"
+  },
+  "id": "WxmnoIcrXrSOrg4w",
+  "tags": []
+}

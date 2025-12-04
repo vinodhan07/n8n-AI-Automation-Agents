@@ -1,0 +1,204 @@
+{
+  "name": "Monday Morning Email Action Items and Priorities Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "2f0b6cc1-7499-4111-88e0-bb2da8268696",
+      "name": "Monday Morning Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        3184,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "myEmail",
+              "value": "vinovb21@gmail.com",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ce1280aa-2288-4676-b3db-d4e4056c8bbb",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3408,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "receivedAfter": "={{ $now.minus({ days: $now.weekday === 1 ? 3 : ($now.weekday === 0 ? 2 : 1) }).set({ hour: 17, minute: 0, second: 0 }).toISO() }}"
+        }
+      },
+      "id": "a24158e0-abc0-448d-af14-b509fdaa221e",
+      "name": "Get Weekend Emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3632,
+        688
+      ],
+      "webhookId": "eaee2a0e-eb7e-4288-8e07-d6d5f4abd70b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ytMuyqjpCWyr7oFC",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following emails from the weekend and extract:\n1. Action items that need to be completed\n2. Priority level for each action item (High/Medium/Low)\n3. Any deadlines mentioned\n4. Key topics or themes\n\nEmails:\n{{ $json.snippet }}\n\nFrom: {{ $json.From }}\nSubject: {{ $json.Subject }}\nDate: {{ $json.internalDate }}\n\nProvide a structured summary with clear sections for High Priority, Medium Priority, and Low Priority action items.",
+        "batching": {}
+      },
+      "id": "c19e947e-4733-4274-ad8b-03351bd63e85",
+      "name": "Analyze Emails with Gemini",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        3856,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "id": "cb987f04-e1ff-4333-9a1b-b6f7da31861d",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3936,
+        912
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "l5RN7OfO1ZVGQebm",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Workflow Configuration').first().json.myEmail }}",
+        "subject": "Monday Morning Email Summary - Action Items & Priorities",
+        "emailType": "text",
+        "message": "={{ $json.text }}",
+        "options": {}
+      },
+      "id": "063c66dc-acef-4a1c-8833-b341b8b7487b",
+      "name": "Send Summary Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4208,
+        688
+      ],
+      "webhookId": "8ea6dd28-aa47-4f33-8314-4655e3f3752e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ytMuyqjpCWyr7oFC",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Monday Morning Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Weekend Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weekend Emails": {
+      "main": [
+        [
+          {
+            "node": "Analyze Emails with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Emails with Gemini",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Emails with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Send Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "43275eb2-54ce-4f61-b46a-0dd433e3895e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "80dfab4e3f12759885a44a77903b1ecd82c16d085c1799129ea2b6a7f96321fd"
+  },
+  "id": "1VqXlw5J2Amu58uk",
+  "tags": []
+}

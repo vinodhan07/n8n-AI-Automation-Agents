@@ -1,0 +1,336 @@
+{
+  "name": "Gamma x n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Generate Presentation ",
+        "formDescription": "Generate any presentation you want ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Presentation Title ",
+              "placeholder": "Enter presentation title ",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Presentation Description",
+              "placeholder": "What do you want the presentation to be about? ",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "customCss": "/* This section adds the bold, neon effect to your title */\n.n8n-form-html h1 {\n    color: #ffffff;\n    font-weight: bold;\n    text-align: center;\n    margin-bottom: 20px;\n    /* Neon glow effect updated to match your lime green brand */\n    text-shadow:\n        0 0 5px #fff,\n        0 0 10px #fff,\n        0 0 15px #9ACD32,\n        0 0 20px #9ACD32,\n        0 0 25px #9ACD32,\n        0 0 30px #9ACD32;\n}\n\n:root {\n\t/* Font and size variables - unchanged */\n\t--font-family: 'Open Sans', sans-serif;\n\t--font-weight-normal: 400;\n\t--font-weight-bold: 600;\n\t--font-size-body: 12px;\n\t--font-size-label: 14px;\n\t--font-size-test-notice: 12px;\n\t--font-size-input: 14px;\n\t--font-size-header: 20px;\n\t--font-size-paragraph: 14px;\n\t--font-size-link: 12px;\n\t--font-size-error: 12px;\n\t--font-size-html-h1: 28px;\n\t--font-size-html-h2: 20px;\n\t--font-size-html-h3: 16px;\n\t--font-size-html-h4: 14px;\n\t--font-size-html-h5: 12px;\n\t--font-size-html-h6: 10px;\n\t--font-size-subheader: 14px;\n\t\n\t/* Colors - Updated to match your lime green brand */\n\t--color-background: #000000; /* Pure black like your logo background */\n\t--color-card-bg: #1A1A1A; /* Slightly lighter dark for cards */\n\t--color-card-border: #9ACD32; /* Your brand lime green for borders */\n\t--color-card-shadow: rgba(154, 205, 50, 0.2); /* Lime green glow shadow */\n\t--color-header: #F0F0F0; /* Light header text */\n\t--color-label: #E0E0E0; /* Light text for labels */\n\t--color-input-border: #333333; /* Dark grey for input borders */\n\t--color-input-text: #000000; /* Black text inside inputs */\n\t--color-focus-border: #9ACD32; /* Lime green for focus */\n\t--color-submit-btn-bg: #9ACD32; /* Lime green submit button */\n\t--color-submit-btn-text: #000000; /* Black text on button */\n\t--color-link: #ADFF2F; /* Lighter lime for links */\n\t--color-html-text: #F0F0F0; /* General text color */\n\t--color-html-link: #9ACD32; /* Lime green for HTML links */\n\t--color-header-subtext: #A0A0A0; /* Grey for sub-headers */\n\t--color-required: #9ACD32; /* Lime green for required indicators */\n\t--color-error: #FF4444; /* Bright red for errors */\n\t--color-clear-button-bg: #7e8186;\n\t\n\t/* Test notice colors - themed to match */\n\t--color-test-notice-text: #9ACD32;\n\t--color-test-notice-bg: #1A1A1A;\n\t--color-test-notice-border: #9ACD32;\n\t\n\t/* Layout variables - unchanged */\n\t--border-radius-card: 8px;\n\t--border-radius-input: 6px;\n\t--border-radius-clear-btn: 50%;\n\t--card-border-radius: 8px;\n\t--padding-container-top: 24px;\n\t--padding-card: 24px;\n\t--padding-test-notice-vertical: 12px;\n\t--padding-test-notice-horizontal: 24px;\n\t--margin-bottom-card: 16px;\n\t--padding-form-input: 12px;\n\t--card-padding: 24px;\n\t--card-margin-bottom: 16px;\n\t--container-width: 448px;\n\t--submit-btn-height: 48px;\n\t--checkbox-size: 18px;\n\t--box-shadow-card: 0px 4px 16px 0px var(--color-card-shadow);\n\t--opacity-placeholder: 0.5;\n}\n\n/* --- Black Placeholder Text --- */\n.n8n-form-field-input::placeholder,\ntextarea::placeholder {\n  color: #000000 !important;\n  opacity: 1 !important;\n}\n.n8n-form-field-input::-moz-placeholder,\ntextarea::-moz-placeholder {\n  color: #000000 !important;\n  opacity: 1 !important;\n}\n.n8n-form-field-input:-ms-input-placeholder,\ntextarea:-ms-input-placeholder {\n  color: #000000 !important;\n  opacity: 1 !important;\n}\n.n8n-form-field-input::-webkit-input-placeholder,\ntextarea::-webkit-input-placeholder {\n  color: #000000 !important;\n  opacity: 1 !important;\n}\n\n/* Optional: Add hover effects for interactive elements */\n.n8n-form-submit:hover {\n    background-color: #ADFF2F !important;\n    box-shadow: 0 0 20px rgba(154, 205, 50, 0.5);\n    transition: all 0.3s ease;\n}\n\n/* Optional: Style input focus with brand glow */\n.n8n-form-field-input:focus {\n    border-color: var(--color-focus-border) !important;\n    box-shadow: 0 0 10px rgba(154, 205, 50, 0.3);\n    outline: none;\n}"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1472,
+        176
+      ],
+      "id": "fa9f128c-45c9-41df-8c74-0d6a9840212f",
+      "name": "PRESENTATION FORM SUBMISSION",
+      "webhookId": "a3c4e3f5-8155-4527-9e3a-109e14f8a487"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Presentation Title:{{ $json['Presentation Title '] }}\n\nPresentation Description:{{ $json['Presentation Description'] }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert AI assistant integrated into an n8n workflow. Your primary function is to act as a \"smart request builder\" for a presentation generation API. You will receive a simple text input from a user and must transform it into a detailed, structured JSON object that the next node in the workflow can use.\nYour Goal:\nIntelligently interpret the user's request, expand upon the core topic to provide rich context, and populate a complete JSON object with appropriate values based on both explicit instructions and implicit intent.\nInstructions:\nAnalyze the Input: Carefully analyze the user's input, which will be provided as {{ $json['Presentation Description'] }}. Look for two things:\nThe Core Topic: What is the presentation about? (e.g., \"Best hikes in the United States\").\nSpecific Parameters: Does the user mention a number of slides, a specific tone, a format, or an audience? (e.g., \"make 10 slides,\" \"keep it professional,\" \"for adventure seekers\").\nExpand the Core Topic: This is your most important task. Do not just pass the user's input through. You must expand it into a more detailed and descriptive prompt for the presentation generator. This new, expanded text will become the inputText value in the output JSON.\nExample: If the user input is Best hikes in the United States, you should expand it to something like: \"A detailed and inspiring presentation on the top 10 most breathtaking hikes in the United States. Include iconic trails like The Narrows in Zion, Half Dome in Yosemite, and the Grand Canyon Rim-to-Rim. For each hike, provide details on location, difficulty, length, and a key highlight that makes it a must-do adventure.\"\nInfer and Populate JSON Fields: Based on your analysis and the expanded topic, construct a complete JSON object. Use the following logic for each field:\ninputText: Use the expanded and detailed prompt you created in step 2.\nformat: Default to \"presentation\". Other valid options might be \"document\" or \"webpage\" if the user implies it.\nthemeName: Choose a theme that creatively matches the topic's mood. (e.g., \"Oasis\" or \"Wanderlust\" for travel, \"Professional\" or \"Slate\" for business, \"Playful\" for fun topics).\nnumCards: If the user specifies a number, use it. If not, choose a reasonable number based on the topic's depth (default to 10 for general overviews).\nadditionalInstructions: Pass through any specific stylistic requests from the user, like \"Make the titles catchy\" or \"Use bullet points for key stats\". If none, leave it as an empty string \"\".\nexportAs: Default to \"pdf\". Change to \"pptx\" if the user mentions PowerPoint.\ntextOptions.amount: Infer from the request. If the user says \"quick\" or \"brief,\" use \"concise\". Otherwise, default to \"detailed\".\ntextOptions.tone: This is crucial. Infer the most appropriate tone from the topic. Be descriptive. Examples: \"professional, formal\", \"inspiring, adventurous\", \"playful, humorous\", \"educational, clear\".\ntextOptions.audience: Infer the target audience from the topic. Examples: \"outdoors enthusiasts, adventure seekers\", \"business executives, managers\", \"university students\", \"general audience\".\nimageOptions.style: Infer the best image style for the topic. Examples: \"photorealistic\" for real-world topics, \"illustrated\" for concepts or cartoons, \"cinematic\" for dramatic themes, \"minimalist\" for business.\nStatic Defaults: For any other fields not mentioned (like textMode, cardSplit, sharingOptions, etc.), use the following safe defaults unless the user's prompt gives you a reason to change them:\ntextMode: \"generate\"\ncardSplit: \"auto\"\nimageOptions.source: \"aiGenerated\"\ncardOptions.dimensions: \"fluid\"\nOutput Format:\nYour final output MUST be only the raw JSON object. Do not include any explanations, comments, or markdown formatting like ```json.\nExample of How to Apply the Prompt\nIf the n8n node receives this input:\n{{$json.inputText}}: \"Make a professional presentation for my leadership team about the Q3 marketing results. Should be about 8 slides.\"\nYour expected output should be this exact JSON:\ncode\nJSON\n{\n  \"inputText\": \"A professional and data-driven presentation summarizing the key marketing results for Q3, intended for a leadership team. Cover metrics such as lead generation, conversion rates, campaign ROI, and social media engagement. Conclude with key takeaways and strategic recommendations for Q4.\",\n  \"textMode\": \"generate\",\n  \"format\": \"presentation\",\n  \"themeName\": \"Professional\",\n  \"numCards\": 8,\n  \"cardSplit\": \"auto\",\n  \"additionalInstructions\": \"\",\n  \"exportAs\": \"pdf\",\n  \"textOptions\": {\n    \"amount\": \"detailed\",\n    \"tone\": \"professional, data-driven, formal\",\n    \"audience\": \"leadership team, executives, managers\",\n    \"language\": \"en\"\n  },\n  \"imageOptions\": {\n    \"source\": \"aiGenerated\",\n    \"model\": \"imagen-4-pro\",\n    \"style\": \"minimalist\"\n  },\n  \"cardOptions\": {\n    \"dimensions\": \"fluid\"\n  },\n  \"sharingOptions\": {\n    \"workspaceAccess\": \"view\",\n    \"externalAccess\": \"noAccess\"\n  }\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -1120,
+        176
+      ],
+      "id": "e5d4d497-84f2-4af3-9d9d-2a0748b60afb",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        400
+      ],
+      "id": "6d72c9e0-85bb-4d89-bf5c-f095f752820e",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "uL6wddH8dCncUxBH",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"inputText\": \"Best hikes in the United States\",\n  \"textMode\": \"generate\",\n  \"format\": \"presentation\",\n  \"themeName\": \"Oasis\",\n  \"numCards\": 10,\n  \"cardSplit\": \"auto\",\n  \"additionalInstructions\": \"Make the titles catchy\",\n  \"exportAs\": \"pdf\",\n  \"textOptions\": {\n    \"amount\": \"detailed\",\n    \"tone\": \"professional, inspiring\",\n    \"audience\": \"outdoors enthusiasts, adventure seekers\",\n    \"language\": \"en\"\n  },\n  \"imageOptions\": {\n    \"source\": \"aiGenerated\",\n    \"model\": \"imagen-4-pro\",\n    \"style\": \"photorealistic\"\n  },\n  \"cardOptions\": {\n    \"dimensions\": \"fluid\"\n  },\n  \"sharingOptions\": {\n    \"workspaceAccess\": \"view\",\n    \"externalAccess\": \"noAccess\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -944,
+        400
+      ],
+      "id": "d9b31306-4f72-47e9-9635-cf0a0f168862",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://public-api.gamma.app/v0.2/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "sk-gamma-Im2zcb8UkkwsjJIMERPfEgUNxoE109H1K2qxFoc4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"inputText\":\"{{ $json.output.inputText }}\",\n  \"textMode\": \"generate\",\n  \"format\": \"presentation\",\n  \"themeName\": \"Oasis\",\n  \"numCards\": 10,\n  \"cardSplit\": \"auto\",\n  \"additionalInstructions\": \"Make the titles catchy\",\n  \"exportAs\": \"pdf\",\n  \"textOptions\": {\n    \"amount\": \"detailed\",\n    \"tone\": \"professional, inspiring\",\n    \"audience\":\"{{ $json.output.textOptions.audience }}\",\n    \"language\": \"en\"\n  },\n  \"imageOptions\": {\n    \"source\": \"aiGenerated\",\n    \"model\": \"imagen-4-pro\",\n    \"style\": \"photorealistic\"\n  },\n  \"cardOptions\": {\n    \"dimensions\": \"fluid\"\n  },\n  \"sharingOptions\": {\n    \"workspaceAccess\": \"view\",\n    \"externalAccess\": \"noAccess\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        176
+      ],
+      "id": "b3fdfe8a-fff8-46ce-a52d-74dd6bdf3783",
+      "name": "Generate Presentation"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "65e5b886-d623-48cc-83f9-e5339dad11e1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        96
+      ],
+      "id": "6d715acd-1314-403d-acf7-e7a84c955223",
+      "name": "Is the presentation Complete?"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -96,
+        272
+      ],
+      "id": "3f6f5d4d-1ce2-475e-bbf9-a8cf6eaebbbf",
+      "name": "Wait 10s",
+      "webhookId": "4a351037-e33c-4c84-86d0-695da0e6902f"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "redirect",
+        "redirectUrl": "={{ $json.gammaUrl }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "e9530e66-7cc2-497b-8018-c45148ff72fc",
+      "name": "Redirect",
+      "webhookId": "052b2dc5-78bf-4772-b16e-19b5b93b2bd4"
+    },
+    {
+      "parameters": {
+        "url": "=https://public-api.gamma.app/v0.2/generations/{{ $json.generationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "sk-gamma-Im2zcb8UkkwsjJIMERPfEgUNxoE109H1K2qxFoc4"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        176
+      ],
+      "id": "0f734688-4979-4a75-ad06-398a314d6df0",
+      "name": "Get Presentation from Gamma"
+    }
+  ],
+  "pinData": {
+    "PRESENTATION FORM SUBMISSION": [
+      {
+        "json": {
+          "Presentation Title ": "MCP",
+          "Presentation Description": "What is MCP or model context protocol, explanation",
+          "submittedAt": "2025-09-19T21:00:43.905-04:00",
+          "formMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "PRESENTATION FORM SUBMISSION": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Generate Presentation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Presentation": {
+      "main": [
+        [
+          {
+            "node": "Get Presentation from Gamma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is the presentation Complete?": {
+      "main": [
+        [
+          {
+            "node": "Redirect",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Get Presentation from Gamma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Presentation from Gamma": {
+      "main": [
+        [
+          {
+            "node": "Is the presentation Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redirect": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9fc265e9-a976-4c92-be42-e93ca13e02d7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eae46237f0b03e1e21495b9d127d17ad71e5e7504c7d7b1084f9a3d34657c561"
+  },
+  "id": "184w0PxVqlxZ1uQZ",
+  "tags": []
+}

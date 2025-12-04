@@ -1,0 +1,201 @@
+{
+  "name": "DATA ANALYSIS",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        4592,
+        1232
+      ],
+      "id": "a4834de1-866b-443f-a66e-3a4d399438c3",
+      "name": "Telegram Trigger1",
+      "webhookId": "cb26d80e-0743-4b8c-bb28-9603d1454a59",
+      "credentials": {
+        "telegramApi": {
+          "id": "U6q9uxhX5ZFQHaTl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger1').first().json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        5712,
+        1232
+      ],
+      "id": "5aea1e70-e625-4508-b958-fe08a7cd85a7",
+      "name": "Telegram",
+      "webhookId": "ba6a4468-b8fe-4559-a851-f7981119ee5f",
+      "credentials": {
+        "telegramApi": {
+          "id": "U6q9uxhX5ZFQHaTl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1kerzxQ_SQCXOy_UuSlFDMmIlveafzHsaRtZLDe2hsuI",
+          "mode": "list",
+          "cachedResultName": "Email ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kerzxQ_SQCXOy_UuSlFDMmIlveafzHsaRtZLDe2hsuI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "ee782fae-ad01-40b8-9da4-db20f8f08f97",
+      "name": "Read Customer Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4816,
+        1232
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KHqaGWcORQEzekKu",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all(); const outputItems = []; for (const item of items) { const row = item.json; const gmailData = { To: row.Mail || row.Email || '', Subject: 'Your Insurance Details – Amudhasurabi Insurance', response: [{ Name: row.Name || '', Mail: row.Mail || row.Email || '', Phone: row.Phone || '' }] }; outputItems.push({ json: gmailData }); } return outputItems;"
+      },
+      "id": "773a437d-4000-4c70-9afe-b72e1b06ca93",
+      "name": "Format Data for Gmail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.To }}",
+        "subject": "={{ $json.Subject }}",
+        "message": "=<!DOCTYPE html> <html> <head> <meta charset=\"utf-8\"> <title>Your Insurance Details – Amudhasurabi Insurance</title> <style>     body { margin:0; padding:0; background:#f4f4f4; font-family: Arial, Helvetica, sans-serif; } </style> </head>  <body style=\"margin:0; padding:20px; background:#f4f4f4;\">  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"> <tr>     <td align=\"center\">          <!-- Logo -->         <img src=\"YOUR_LOGO_URL_HERE\" width=\"150\"              alt=\"Amudhasurabi Insurance\"              style=\"display:block; margin-bottom:25px;\">          <!-- Main Card -->         <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"                style=\"background:#ffffff; border:1px solid #ddd; border-radius:10px; overflow:hidden;\">              <!-- Title Section -->             <tr>                 <td style=\"padding:30px 40px; text-align:center; font-size:22px; font-weight:bold; color:#000;\">                     Your Insurance Details Are Confirmed                 </td>             </tr>              <!-- Body Content -->             <tr>                 <td style=\"padding:0 40px 40px; font-size:16px; color:#333; line-height:1.6;\">                                          Dear <strong>{{ $json[\"response\"][0][\"Name\"] }}</strong>,<br><br>                      Thank you for choosing <strong>Amudhasurabi Insurance Company</strong>.<br>                     Your insurance details have been successfully updated and confirmed.<br><br>                      <!-- Customer Detail Box -->                     <strong>Customer Information</strong><br>                     <strong>Name:</strong> {{ $json[\"response\"][0][\"Name\"] }}<br>                     <strong>Email:</strong> {{ $json[\"response\"][0][\"Mail\"] }}<br>                     <strong>Phone:</strong> {{ $json[\"response\"][0][\"Phone\"] }}<br>                 <br><br>                      Please keep this email as your official confirmation record.<br><br>                      For any support, contact us:<br>                     <strong>Email:</strong> support@amudhasurabiinsurance.com<br>                     <strong>Phone:</strong> +91 9XXXXXXXXX<br><br>                      Regards,<br>                     <strong>Amudhasurabi Insurance Team</strong>                 </td>             </tr>              <!-- Footer -->             <tr>                 <td style=\"padding:25px; font-size:12px; color:#777; text-align:center;\">                     © 2025 Amudhasurabi Insurance Company — All Rights Reserved.                 </td>             </tr>          </table>      </td> </tr> </table>  </body> </html>",
+        "options": {}
+      },
+      "id": "90e377fa-2f87-4fce-b66f-4445b14b4e6d",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5264,
+        1232
+      ],
+      "webhookId": "fbc28460-c425-472a-9e05-b94f12f404d5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6PRe4clhaBnUSMd9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const totalEmailsSent = $input.all().length; return [{ json: { totalEmailsSent: totalEmailsSent, output: `Successfully sent ${totalEmailsSent} email(s)` }, pairedItem: 0 }];"
+      },
+      "id": "1ab5582d-44f5-4869-aa6c-4c6a83cad4b6",
+      "name": "Count Emails Sent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5488,
+        1232
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Format Data for Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data for Gmail": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Count Emails Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Emails Sent": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Read Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6eb42c04-8175-48b4-80eb-6ef14d2b005d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "722addc949807b04d4bd055682f5b9bf44f8095f173ff8c996559cbfbeaf8466"
+  },
+  "id": "PgDNqKBiTrMJtt1k",
+  "tags": []
+}

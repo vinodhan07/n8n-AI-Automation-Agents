@@ -1,0 +1,422 @@
+{
+  "name": "Telegram Media Processor — Gemini + PostgreSQL",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "*"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        128
+      ],
+      "id": "a35a8797-8d85-4c5b-99ba-baa1479e05a6",
+      "webhookId": "183da2aa-75f8-48bb-9df9-12ebf23d9f6f",
+      "credentials": {
+        "telegramApi": {
+          "id": "CZydH5IbzTls6AdI",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Normalize Telegram message into common fields */\nconst msg = $json;\n// Telegram Trigger returns message in different paths; attempt common shapes\nconst message = msg.message || msg; \nconst chatId = (message.chat && message.chat.id) || message.chatId || null;\nconst fromId = (message.from && message.from.id) || null;\nconst caption = message.caption || message.text || '';\n\n// Identify media type and file_id\nlet media = null;\nif (message.photo) {\n  // photo is array of sizes - pick last\n  media = { type: 'photo', file_id: message.photo[message.photo.length-1].file_id };\n} else if (message.video) media = { type: 'video', file_id: message.video.file_id };\nelse if (message.audio) media = { type: 'audio', file_id: message.audio.file_id };\nelse if (message.voice) media = { type: 'audio', file_id: message.voice.file_id };\nelse if (message.document) media = { type: 'document', file_id: message.document.file_id, file_name: message.document.file_name };\nelse if (message.text) media = { type: 'text', text: message.text };\n\nreturn [{ json: { chatId, fromId, caption, media } }];"
+      },
+      "name": "Set Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        -32
+      ],
+      "id": "bad4da03-d853-4e18-a0be-8287b371b859"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "=https://api.telegram.org/bot{{$credentials.telegramBot.token}}/getFile",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={ \"file_id\": $json[\"media\"].file_id }"
+      },
+      "name": "Telegram - Get File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        -32
+      ],
+      "id": "174036d1-69e3-4e5c-820e-35aef8cac56c"
+    },
+    {
+      "parameters": {
+        "functionCode": "const resp = $node['Telegram - Get File Info'].json;\n// Telegram returns file_path at result.file_path\nconst filePath = resp.result && resp.result.file_path ? resp.result.file_path : null;\nif (!filePath) throw new Error('No file_path returned from Telegram getFile');\nconst downloadUrl = `https://api.telegram.org/file/bot${$credentials.telegramBot.token}/${filePath}`;\nreturn [{ json: { downloadUrl, media: $node['Set Input'].json.media, chatId: $node['Set Input'].json.chatId, caption: $node['Set Input'].json.caption } }];"
+      },
+      "name": "Build Download URL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        -32
+      ],
+      "id": "8a2c371f-4229-451e-b290-cdaff2051ca6"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.downloadUrl }}",
+        "responseFormat": "File",
+        "options": {}
+      },
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        -32
+      ],
+      "id": "2e047d53-67d5-4a2a-895c-1087fa006757"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* route by media type */\nconst media = $node['Build Download URL'].json.media;\nif (!media) return [{ json: { action: 'none', reason: 'no media found' } }];\nconst type = media.type;\nreturn [{ json: { action: 'route', mediaType: type } }];"
+      },
+      "name": "Detect Media Type",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        -32
+      ],
+      "id": "439b4fb5-07bf-4149-beeb-19c21c280abd"
+    },
+    {
+      "parameters": {},
+      "name": "Switch - Media Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        624
+      ],
+      "id": "9b46348d-c4df-42fe-8014-a4e747200465"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "options": {}
+      },
+      "name": "OpenAI - Analyze Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -64
+      ],
+      "id": "7f1b33a6-c967-40e2-a6bd-cae371ae28a9"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "options": {}
+      },
+      "name": "OpenAI - Analyze Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        144
+      ],
+      "id": "7480a8ed-78e4-4803-bc0e-ca8c0d8d129f"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "options": {}
+      },
+      "name": "OpenAI - Analyze Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        352
+      ],
+      "id": "55715a80-e576-4b9d-95fc-d6fdfb996f22"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "options": {}
+      },
+      "name": "OpenAI - Analyze Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        512
+      ],
+      "id": "cef407f5-e71b-4ca5-989b-7cb410191069"
+    },
+    {
+      "parameters": {
+        "schema": "",
+        "table": "media_analysis",
+        "columns": "={ [\n  { \"name\": \"chat_id\", \"value\": $json.chatId },\n  { \"name\": \"file_url\", \"value\": $node['Build Download URL'].json.downloadUrl },\n  { \"name\": \"media_type\", \"value\": $node['Detect Media Type'].json.mediaType },\n  { \"name\": \"caption\", \"value\": $node['Build Download URL'].json.caption },\n  { \"name\": \"analysis_json\", \"value\": JSON.stringify($json.analysis || $json) },\n  { \"name\": \"created_at\", \"value\": new Date().toISOString() }\n] }",
+        "additionalFields": {}
+      },
+      "name": "Postgres - Save Analysis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        240,
+        384
+      ],
+      "id": "b4d96462-2d25-44db-8ae9-b732561ff0f4"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Build a concise reply to the user */\nconst analysis = $node['Postgres - Save Analysis'].json || $json.analysis || {};\nconst mediaType = $node['Detect Media Type'].json.mediaType || 'media';\nlet summary = '';\nif ($node['OpenAI - Analyze Image'] && $node['OpenAI - Analyze Image'].json && mediaType === 'photo') {\n  try {\n    const text = $node['OpenAI - Analyze Image'].json;\n    // If the analyzer returned a JSON text field, attempt to parse\n    const parsed = typeof text === 'string' ? JSON.parse(text) : text;\n    summary = parsed.summary || parsed.insights ? parsed.insights.slice(0,3).join('; ') : 'Processed image.';\n  } catch (e) { summary = 'Image processed.'; }\n} else if (mediaType === 'audio' && $node['OpenAI - Analyze Audio']) {\n  try { const p = $node['OpenAI - Analyze Audio'].json; const parsed = typeof p === 'string' ? JSON.parse(p) : p; summary = parsed.summary || (parsed.transcription || '').slice(0,200) || 'Audio processed.'; } catch(e){ summary='Audio processed.'; }\n} else if (mediaType === 'video' && $node['OpenAI - Analyze Video']) {\n  summary = 'Video processed — insights saved.';\n} else if (mediaType === 'document' && $node['OpenAI - Analyze Document']) {\n  summary = 'Document processed — summary saved.';\n} else {\n  summary = 'Media processed and saved to database.';\n}\nreturn [{ json: { chatId: $node['Build Download URL'].json.chatId, text: `✅ Your ${mediaType} was processed. ${summary}` } }];"
+      },
+      "name": "Build Telegram Reply",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        496,
+        208
+      ],
+      "id": "983f7c79-3be8-4d04-943a-235aa79c97e0"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "=https://api.telegram.org/bot{{$credentials.telegramBot.token}}/sendMessage",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={ \"chat_id\": $json.chatId, \"text\": $json.text }"
+      },
+      "name": "Telegram - Send Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        800,
+        16
+      ],
+      "id": "5b106e65-3e41-40b8-b19e-43559271cd9f"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Generic parser: try to convert LLM text outputs into JSON and attach under field analysis */\nfunction tryParse(node) {\n  try {\n    const raw = node && node.json ? node.json : node;\n    if (!raw) return null;\n    if (typeof raw === 'string') return JSON.parse(raw);\n    if (raw.output_text) return JSON.parse(raw.output_text);\n    return raw;\n  } catch (e) { return raw; }\n}\n\nlet analysis = null;\nconst mediaType = $node['Detect Media Type'].json.mediaType;\nif (mediaType === 'photo') analysis = tryParse($node['OpenAI - Analyze Image']);\nelse if (mediaType === 'video') analysis = tryParse($node['OpenAI - Analyze Video']);\nelse if (mediaType === 'audio') analysis = tryParse($node['OpenAI - Analyze Audio']);\nelse if (mediaType === 'document') analysis = tryParse($node['OpenAI - Analyze Document']);\nelse analysis = { note: 'text or no media' };\n\nreturn [{ json: { analysis } }];"
+      },
+      "name": "Normalize Analysis",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -32
+      ],
+      "id": "9e48b2fc-bf10-42a7-85ec-f1422a60f57d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Input": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Get File Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Get File Info": {
+      "main": [
+        [
+          {
+            "node": "Build Download URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Download URL": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detect Media Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Detect Media Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Media Type": {
+      "main": [
+        [
+          {
+            "node": "Switch - Media Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Media Type": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Analyze Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI - Analyze Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI - Analyze Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI - Analyze Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyze Image": {
+      "main": [
+        [
+          {
+            "node": "Normalize Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyze Video": {
+      "main": [
+        [
+          {
+            "node": "Normalize Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyze Audio": {
+      "main": [
+        [
+          {
+            "node": "Normalize Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyze Document": {
+      "main": [
+        [
+          {
+            "node": "Normalize Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Analysis": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Save Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Save Analysis": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Reply": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6d54ffc9-5042-42dd-a69f-eb81b2acdba9",
+  "meta": {
+    "instanceId": "73aaa0598166c73b6e9f472d68724a7eeac9c207f7c26836f6948b63847cf8d1"
+  },
+  "id": "Y32WZwmOKqPcfRar",
+  "tags": []
+}
