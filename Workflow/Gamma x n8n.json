@@ -97,7 +97,7 @@
           "parameters": [
             {
               "name": "X-API-KEY",
-              "value": "sk-gamma-Im2zcb8UkkwsjJIMERPfEgUNxoE109H1K2qxFoc4"
+              "value": "api-key"
             }
           ]
         },
