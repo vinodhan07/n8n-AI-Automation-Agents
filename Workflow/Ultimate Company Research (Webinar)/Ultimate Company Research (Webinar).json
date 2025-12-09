@@ -1,0 +1,1132 @@
+{
+  "name": "Ultimate Company Research (Webinar)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        2416
+      ],
+      "id": "9d3872aa-6654-489e-8c22-d576ce9a9039",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM",
+          "mode": "list",
+          "cachedResultName": "Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -432,
+        2416
+      ],
+      "id": "e5d13d26-eeea-4233-85b2-d38106b510b8",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "=https://www.trustpilot.com/review/{{ $json.website }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -208,
+        2416
+      ],
+      "id": "b5d1a66a-a42f-44ce-aa52-c9186228ba69",
+      "name": "Trustpilot Reviews",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "azMMnPrX8MKIlh6n",
+          "name": "firecrawl API 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "06fc8efb-73a8-41e3-9700-a29bee141d4e",
+              "name": "data.metadata.ogTitle",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "b6469a2f-5b8e-4e37-8461-d8e6ea8aa4bd",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        2416
+      ],
+      "id": "e15a2ae6-8604-4f51-884c-756b549420ce",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputItems = items;\nconst outputItems = [];\n\nfor (let i = 0; i < inputItems.length; i++) {\n  try {\n    const item = inputItems[i].json;\n    \n    // Get the main content\n    const content = item?.data?.metadata?.ogTitle || \"\";\n    \n    // Extract company name\n    let companyName = \"Unknown\";\n    const companyNameMatch = content.match(/# ([A-Za-z0-9]+)Reviews(\\d+)/);\n    if (companyNameMatch) {\n      companyName = companyNameMatch[1];\n    }\n    \n    // Extract trust score\n    let trustScore = \"N/A\";\n    const trustScoreMatch = content.match(/TrustScore (\\d+\\.?\\d*) out of 5/);\n    if (trustScoreMatch) {\n      trustScore = trustScoreMatch[1];\n    }\n    \n    // Extract total reviews\n    let totalReviews = \"0\";\n    const totalReviewsMatch = content.match(/Reviews(\\d+)/);\n    if (totalReviewsMatch) {\n      totalReviews = totalReviewsMatch[1];\n    }\n    \n    // Extract reviews using a different approach\n    const reviews = [];\n    \n    // Find all review blocks\n    // Look for patterns like \"![Rated X out of 5 stars]\"\n    const ratingMatches = [...content.matchAll(/!\\[Rated (\\d) out of 5 stars\\]/g)];\n    \n    for (let j = 0; j < ratingMatches.length; j++) {\n      const ratingMatch = ratingMatches[j];\n      const rating = ratingMatch[1]; // This contains the actual rating (1-5)\n      \n      // Get the position where this rating appears in the content\n      const startPos = ratingMatch.index;\n      \n      // Define the end position (either the next rating or the end of content)\n      const endPos = (j < ratingMatches.length - 1) ? ratingMatches[j + 1].index : content.length;\n      \n      // Extract this review's block of text\n      const reviewBlock = content.substring(startPos, endPos);\n      \n      // Extract review title\n      let title = \"\";\n      const titleMatch = reviewBlock.match(/\\*\\*([^*]+)\\*\\*/);\n      if (titleMatch) {\n        title = titleMatch[1].trim();\n      } else {\n        // Try alternate title formats\n        const altTitleMatch = reviewBlock.match(/\\n\\n\\[([^\\]]+)\\]/);\n        if (altTitleMatch) {\n          title = altTitleMatch[1].trim();\n        }\n      }\n      \n      // Extract review content - find text after the rating that's not part of metadata\n      let reviewContent = \"\";\n      // First look for text between the title and \"Date of experience\"\n      if (reviewBlock.includes(\"**Date of experience:**\")) {\n        const textBeforeDate = reviewBlock.split(\"**Date of experience:**\")[0];\n        \n        // Extract the main content, skipping the title and other metadata\n        const contentMatch = textBeforeDate.match(/\\]\\(https:\\/\\/www\\.trustpilot\\.com\\/reviews\\/[^)]+\\) ([\\s\\S]+)$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        } else {\n          // If no URL pattern, try a simpler approach\n          const simpleMatch = textBeforeDate.match(/\\n\\n([^*\\n]+(?:\\n[^*\\n]+)*)\\n\\n$/);\n          if (simpleMatch) {\n            reviewContent = simpleMatch[1].trim();\n          }\n        }\n      } else {\n        // If there's no date pattern, get content after any metadata\n        const contentMatch = reviewBlock.match(/\\n\\n([^*\\n\\[]+(?:\\n[^*\\n\\[]+)*)\\n*$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        }\n      }\n      \n      // Extract experience date\n      let experienceDate = \"\";\n      const expDateMatch = reviewBlock.match(/\\*\\*Date of experience:\\*\\* ([^\\n]+)/);\n      if (expDateMatch) {\n        experienceDate = expDateMatch[1].trim();\n      }\n      \n      // Fallback for review content - if nothing extracted properly\n      if (!reviewContent && title) {\n        // Just get all text in the block after the title\n        const titlePos = reviewBlock.indexOf(title);\n        if (titlePos > -1) {\n          reviewContent = reviewBlock.substring(titlePos + title.length).replace(/^\\*+|\\n+|\\*+$/g, '').trim();\n        }\n      }\n      \n      // Add the review if we have at least something\n      if (title || reviewContent) {\n        reviews.push({\n          rating: rating,\n          title: title || \"No title\",\n          content: reviewContent || \"No content\",\n          experience_date: experienceDate\n        });\n      }\n    }\n    \n    // Output the structured data\n    outputItems.push({\n      json: {\n        company: companyName,\n        total_reviews: totalReviews,\n        trust_score: trustScore,\n        reviews: reviews\n      }\n    });\n  } catch (error) {\n    // If there's an error, output a default object\n    outputItems.push({\n      json: {\n        company: \"Error extracting data\",\n        total_reviews: \"0\",\n        trust_score: \"N/A\",\n        reviews: [],\n        error: error.message\n      }\n    });\n  }\n}\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        2416
+      ],
+      "id": "e54425e8-55c0-4ed6-95c9-5345e9ddc1dd",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM",
+          "mode": "list",
+          "cachedResultName": "Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1440,
+        4048
+      ],
+      "id": "38e18cb9-34f1-4b4c-976b-c2e1ccc0d9af",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "=https://www.trustpilot.com/review/{{ $json.website }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1216,
+        4048
+      ],
+      "id": "5832dc9f-178b-4ab5-ba79-27c5c907763b",
+      "name": "Trustpilot Review",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "azMMnPrX8MKIlh6n",
+          "name": "firecrawl API 2"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputItems = items;\nconst outputItems = [];\n\nfor (let i = 0; i < inputItems.length; i++) {\n  try {\n    const item = inputItems[i].json;\n    \n    // Get the main content\n    const content = item?.data?.metadata?.ogTitle || \"\";\n    \n    // Extract company name\n    let companyName = \"Unknown\";\n    const companyNameMatch = content.match(/# ([A-Za-z0-9]+)Reviews(\\d+)/);\n    if (companyNameMatch) {\n      companyName = companyNameMatch[1];\n    }\n    \n    // Extract trust score\n    let trustScore = \"N/A\";\n    const trustScoreMatch = content.match(/TrustScore (\\d+\\.?\\d*) out of 5/);\n    if (trustScoreMatch) {\n      trustScore = trustScoreMatch[1];\n    }\n    \n    // Extract total reviews\n    let totalReviews = \"0\";\n    const totalReviewsMatch = content.match(/Reviews(\\d+)/);\n    if (totalReviewsMatch) {\n      totalReviews = totalReviewsMatch[1];\n    }\n    \n    // Extract reviews using a different approach\n    const reviews = [];\n    \n    // Find all review blocks\n    // Look for patterns like \"![Rated X out of 5 stars]\"\n    const ratingMatches = [...content.matchAll(/!\\[Rated (\\d) out of 5 stars\\]/g)];\n    \n    for (let j = 0; j < ratingMatches.length; j++) {\n      const ratingMatch = ratingMatches[j];\n      const rating = ratingMatch[1]; // This contains the actual rating (1-5)\n      \n      // Get the position where this rating appears in the content\n      const startPos = ratingMatch.index;\n      \n      // Define the end position (either the next rating or the end of content)\n      const endPos = (j < ratingMatches.length - 1) ? ratingMatches[j + 1].index : content.length;\n      \n      // Extract this review's block of text\n      const reviewBlock = content.substring(startPos, endPos);\n      \n      // Extract review title\n      let title = \"\";\n      const titleMatch = reviewBlock.match(/\\*\\*([^*]+)\\*\\*/);\n      if (titleMatch) {\n        title = titleMatch[1].trim();\n      } else {\n        // Try alternate title formats\n        const altTitleMatch = reviewBlock.match(/\\n\\n\\[([^\\]]+)\\]/);\n        if (altTitleMatch) {\n          title = altTitleMatch[1].trim();\n        }\n      }\n      \n      // Extract review content - find text after the rating that's not part of metadata\n      let reviewContent = \"\";\n      // First look for text between the title and \"Date of experience\"\n      if (reviewBlock.includes(\"**Date of experience:**\")) {\n        const textBeforeDate = reviewBlock.split(\"**Date of experience:**\")[0];\n        \n        // Extract the main content, skipping the title and other metadata\n        const contentMatch = textBeforeDate.match(/\\]\\(https:\\/\\/www\\.trustpilot\\.com\\/reviews\\/[^)]+\\) ([\\s\\S]+)$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        } else {\n          // If no URL pattern, try a simpler approach\n          const simpleMatch = textBeforeDate.match(/\\n\\n([^*\\n]+(?:\\n[^*\\n]+)*)\\n\\n$/);\n          if (simpleMatch) {\n            reviewContent = simpleMatch[1].trim();\n          }\n        }\n      } else {\n        // If there's no date pattern, get content after any metadata\n        const contentMatch = reviewBlock.match(/\\n\\n([^*\\n\\[]+(?:\\n[^*\\n\\[]+)*)\\n*$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        }\n      }\n      \n      // Extract experience date\n      let experienceDate = \"\";\n      const expDateMatch = reviewBlock.match(/\\*\\*Date of experience:\\*\\* ([^\\n]+)/);\n      if (expDateMatch) {\n        experienceDate = expDateMatch[1].trim();\n      }\n      \n      // Fallback for review content - if nothing extracted properly\n      if (!reviewContent && title) {\n        // Just get all text in the block after the title\n        const titlePos = reviewBlock.indexOf(title);\n        if (titlePos > -1) {\n          reviewContent = reviewBlock.substring(titlePos + title.length).replace(/^\\*+|\\n+|\\*+$/g, '').trim();\n        }\n      }\n      \n      // Add the review if we have at least something\n      if (title || reviewContent) {\n        reviews.push({\n          rating: rating,\n          title: title || \"No title\",\n          content: reviewContent || \"No content\",\n          experience_date: experienceDate\n        });\n      }\n    }\n    \n    // Output the structured data\n    outputItems.push({\n      json: {\n        company: companyName,\n        total_reviews: totalReviews,\n        trust_score: trustScore,\n        reviews: reviews\n      }\n    });\n  } catch (error) {\n    // If there's an error, output a default object\n    outputItems.push({\n      json: {\n        company: \"Error extracting data\",\n        total_reviews: \"0\",\n        trust_score: \"N/A\",\n        reviews: [],\n        error: error.message\n      }\n    });\n  }\n}\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        4048
+      ],
+      "id": "9f154319-4ff1-4188-98a0-8e617ae967bb",
+      "name": "Code",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -496,
+        4256
+      ],
+      "id": "628e4d13-2383-4d4a-93e1-f4a187c4286c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company Name: {{ $json.company }}\n\nReviews: {{ $('Edit Fields1').item.json.data.metadata.ogTitle }}\n\nExpected Output:\n\n{{ $json.company }} - Customer Review Summary\n\nOverall Company Feedback: Summarize the general sentiment about the company based on customer experiences. Highlight both positive and negative aspects.\n\nProduct Sentiment Analysis: Identify key products or services mentioned in the reviews. For each product, indicate whether the sentiment is mostly positive, negative, or mixed. Example:\n\nProduct: Positive sentiment\nProduct: Negative sentiment\nKey Improvement Areas: Suggest the top 2-3 areas where the company can improve based on the negative feedback.\n\nEnsure that the final output starts with the company name as the heading, followed by a structured summary."
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        -592,
+        4048
+      ],
+      "id": "065604c3-e540-4fe8-9d04-edcb89f3c3a7",
+      "name": "Trustpilot Review Analyser",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $('Google Sheets').item.json.website }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer jina_5272ae9198de429682132d2c2b7293c4xCPzLb_6bxR0n0Yi681_hZqOjNzk"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -224,
+        4048
+      ],
+      "id": "ec4c3c5f-4270-4f0c-8021-bae11d06a7fc",
+      "name": "HTTP Request",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "text": "=## Task Overview\nYou are provided with the text content from a company's website. Your task is to analyze this content and generate a comprehensive company profile in JSON format.\n\nHere is the website content: {{ $json.data }}\n\n## Objective\nCreate a structured JSON object that captures key information about the company, including:\n\nCompany basics (name, industry, location)\nBusiness overview\nProducts/Services\nKey features and value propositions\nTarget audience/market\nCompany culture and values (if available)\n\n## Output Format\nThe output should be a valid JSON object with the following structure:\n{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}\n\n## Instructions\n\nContent Analysis:\n\nCarefully review all provided website content\nExtract relevant information for each section\nFocus on factual information directly stated in the content\nDo not make assumptions or include external information\n\n\n## Data Organization:\n\n- Organize information into appropriate categories\n- Use clear, concise language\n- Maintain original terminology where appropriate\n- Include specific details when available\n\n\n## Quality Guidelines:\n\n- Ensure accuracy of extracted information\n- Use professional language\n- Avoid marketing language or subjective claims\n- Include only information present in the source content\n\n\n## Field-Specific Guidelines:\n\n### Company Basics:\n\n- Extract official company name and location\n- Identify primary industry sector\n- Include founding date if available\n- Include official website URL\n\n### Business Overview:\n\n- Summarize main business activities\n- Include mission statement if explicitly stated\n- List primary offerings or services\n\n### Products and Services:\n\n- List main products/services\n- Detail key features and capabilities\n- Include pricing model information if available\n\n### Market Position:\n\n- Identify stated target market\n- Extract unique selling propositions\n- List competitive advantages mentioned\n\n### Company Culture:\n\n- Include stated company values\n- Describe work environment if mentioned\n- List team/employee highlights\n\n## Additional Information:\n\n- Include relevant certifications\n- List notable partnerships\n- Include significant achievements\n\n\n### Handling Missing Information:\n\n- If information for a field is not available, use null\n- Do not make assumptions to fill gaps\n- Only include explicitly stated information\n\n\n\n## Validation Checklist\n\n- All JSON syntax is valid\n- Information is accurately extracted from source\n- No external information is included\n- Missing information is properly handled\n- Language is professional and objective\n- All sections are properly populated where information is available\n\n## Important Notes\n\n- Focus on extracting factual information only\n- Do not include subjective interpretations\n- Maintain original context of information\n- Exclude promotional or marketing language\n- Handle missing information appropriately\n- Ensure JSON structure remains consistent",
+        "schemaType": "manual",
+        "inputSchema": "{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}\n",
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        4048
+      ],
+      "id": "fcca8001-45a0-4fff-b7e5-0164c1a40669",
+      "name": "Website Analysis",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "=https://nubela.co/proxycurl/api/linkedin/company?url={{ $('Google Sheets').item.json.linkedin_profile_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        4048
+      ],
+      "id": "7160b9fa-0c61-401d-9483-28e66ff4f0e5",
+      "name": "GetCompanyInfos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BJsrKpPGSPac9jxf",
+          "name": "Header Auth account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        352,
+        4048
+      ],
+      "id": "ff757510-492a-44ba-8bed-6389471f3a7e",
+      "name": "Loop Over Items5",
+      "alwaysOutputData": false,
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        4048
+      ],
+      "id": "0396a76d-f90c-4fa7-8061-0d67387a6f06",
+      "name": "Wait4",
+      "webhookId": "be28fef4-78dd-478a-a01d-4b19b9aa351a",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d441989-25fa-4c17-aefa-fe48e2aa5f73",
+              "name": "data.metadata.ogTitle",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -992,
+        4048
+      ],
+      "id": "b81969c7-c0e7-4a0b-a1fe-9cf1263e9d21",
+      "name": "Edit Fields1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        2704
+      ],
+      "id": "76d3bfd4-e762-468a-a0fd-b21acfc20ec1",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company Name : {{ $json.company }}\n\nReviews :{{ $json.total_reviews }}\n\nExpected Output : \n\n{{ $json.company }} - Customer Review Summary \n\nOverall Company Feedback: Summarize the general sentiment about the company based on customer experiences. Highlight both positive and negative aspects.\n\nProduct Sentiment Analysis: Identify key products or services mentioned in the reviews. For each product, indicate whether the sentiment is mostly positive, negative, or mixed. Example:\n\nProduct: Positive sentiment\nProduct: Negative sentiment\nKey Improvement Areas: Suggest the top 2-3 areas where the company can improve based on the negative feedback.\n\nEnsure that the final output starts with the company name as the heading, followed by a structured summary.\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        448,
+        2416
+      ],
+      "id": "4f019837-3f2b-4912-aa2c-7251dd688761",
+      "name": "Trustpilot review Analyzer"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $('Get row(s) in sheet').item.json.website }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer jina_4f903129e8c24ab69414d1eaafea0ab86ls8ETpPqw4PUFmK7u_j-1KVH37z"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        800,
+        2416
+      ],
+      "id": "ebdc420e-3a9c-400d-83a7-af853e4e592e",
+      "name": "Jina AI"
+    },
+    {
+      "parameters": {
+        "text": "=## Task Overview\nYou are provided with the text content from a company's website. Your task is to analyze this content and generate a comprehensive company profile in JSON format.\n\nHere is the website content: {{ $json.data }}\n\n## Objective\nCreate a structured JSON object that captures key information about the company, including:\n\nCompany basics (name, industry, location)\nBusiness overview\nProducts/Services\nKey features and value propositions\nTarget audience/market\nCompany culture and values (if available)\n\n## Output Format\nThe output should be a valid JSON object with the following structure:\n{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}\n\n## Instructions\n\nContent Analysis:\n\nCarefully review all provided website content\nExtract relevant information for each section\nFocus on factual information directly stated in the content\nDo not make assumptions or include external information\n\n\n## Data Organization:\n\n- Organize information into appropriate categories\n- Use clear, concise language\n- Maintain original terminology where appropriate\n- Include specific details when available\n\n\n## Quality Guidelines:\n\n- Ensure accuracy of extracted information\n- Use professional language\n- Avoid marketing language or subjective claims\n- Include only information present in the source content\n\n\n## Field-Specific Guidelines:\n\n### Company Basics:\n\n- Extract official company name and location\n- Identify primary industry sector\n- Include founding date if available\n- Include official website URL\n\n### Business Overview:\n\n- Summarize main business activities\n- Include mission statement if explicitly stated\n- List primary offerings or services\n\n### Products and Services:\n\n- List main products/services\n- Detail key features and capabilities\n- Include pricing model information if available\n\n### Market Position:\n\n- Identify stated target market\n- Extract unique selling propositions\n- List competitive advantages mentioned\n\n### Company Culture:\n\n- Include stated company values\n- Describe work environment if mentioned\n- List team/employee highlights\n\n## Additional Information:\n\n- Include relevant certifications\n- List notable partnerships\n- Include significant achievements\n\n\n### Handling Missing Information:\n\n- If information for a field is not available, use null\n- Do not make assumptions to fill gaps\n- Only include explicitly stated information\n\n\n\n## Validation Checklist\n\n- All JSON syntax is valid\n- Information is accurately extracted from source\n- No external information is included\n- Missing information is properly handled\n- Language is professional and objective\n- All sections are properly populated where information is available\n\n## Important Notes\n\n- Focus on extracting factual information only\n- Do not include subjective interpretations\n- Maintain original context of information\n- Exclude promotional or marketing language\n- Handle missing information appropriately\n- Ensure JSON structure remains consistent",
+        "schemaType": "manual",
+        "inputSchema": "{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}",
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        2416
+      ],
+      "id": "d66d084b-1b0d-4556-99c7-cca8afeaf0e6",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64",
+          "mode": "list",
+          "cachedResultName": "Ultimate Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 357739692,
+          "mode": "list",
+          "cachedResultName": "Scrape Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit#gid=357739692"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company_name": "={{ $json.name }}",
+            "company_website": "={{ $('Website Analysis').item.json.output.company_basics.website }}",
+            "company_reviews": "={{ $('Trustpilot Review Analyser').item.json.text }}",
+            "Company_business_profile": "={{ $('Website Analysis').item.json.output.business_overview.description }}\n\nKey offerings: {{ $('Website Analysis').item.json.output.business_overview.key_offerings[0] }}, {{ $('Website Analysis').item.json.output.business_overview.key_offerings[1] }}\n\nProducts and ServiceS: {{ $('Website Analysis').item.json.output.products_and_services.main_offerings[0] }}\n\nTarget Audience: {{ $('Website Analysis').item.json.output.market_position.target_audience }}\n\nUnique Values: {{ $('Website Analysis').item.json.output.market_position.unique_value_proposition }}\n\nCompetitive Advantage: {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[0] }}, {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[1] }}, {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[2] }}\n\nCompany Culture: {{ $('Website Analysis').item.json.output.company_culture.values }}, {{ $('Website Analysis').item.json.output.company_culture.work_environment }}, {{ $('Website Analysis').item.json.output.company_culture.team_highlights }}\n\nAchievements: {{ $('Website Analysis').item.json.output.additional_info.notable_achievements[0] }}, {{ $('Website Analysis').item.json.output.additional_info.notable_achievements[1] }}",
+            "company_linkedin_extract": "={{ $('Website Analysis').item.json.output.business_overview.description }}",
+            "company_followers_on_linkedin": "={{ $('GetCompanyInfos').item.json.follower_count }}",
+            "company_about_us": "={{ $('GetCompanyInfos').item.json.tagline }}",
+            "company_industry": "={{ $('Website Analysis').item.json.output.company_basics.industry }}",
+            "company_headquarters": "={{ $('GetCompanyInfos').item.json.locations[0].city }}, {{ $('GetCompanyInfos').item.json.locations[0].country }}",
+            "company_founded": "={{ $('GetCompanyInfos').item.json.founded_year }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_website",
+              "displayName": "company_website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_reviews",
+              "displayName": "company_reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company_business_profile",
+              "displayName": "Company_business_profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_linkedin_extract",
+              "displayName": "company_linkedin_extract",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_followers_on_linkedin",
+              "displayName": "company_followers_on_linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_about_us",
+              "displayName": "company_about_us",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_industry",
+              "displayName": "company_industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_size",
+              "displayName": "company_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_headquarters",
+              "displayName": "company_headquarters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_founded",
+              "displayName": "company_founded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        912,
+        4048
+      ],
+      "id": "aadc61bd-af87-47ae-9b06-310bc6cfcbc0",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        2400
+      ],
+      "id": "7455daf9-9ff4-4b84-ab86-22e447c4575b",
+      "name": "Loop Over Items",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1728,
+        2400
+      ],
+      "id": "95a74d96-740d-4c49-8278-f95e69173047",
+      "name": "Wait",
+      "webhookId": "be28fef4-78dd-478a-a01d-4b19b9aa351a"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "q",
+              "value": "={{ $('Get row(s) in sheet').item.json.LinkedIn_Profile_url }} "
+            },
+            {
+              "name": "api_key",
+              "value": "97add513ca411ba8bea8efcb52dbcd2f6b659a24d651ec9f36aa61d4612f3f7a"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23d1fb51-db98-42b0-a9cc-f647ed349577",
+      "name": "GetCompanyInfos2 (Free)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM",
+          "mode": "list",
+          "cachedResultName": "Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 596522078,
+          "mode": "list",
+          "cachedResultName": "Company Details",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L1o-PKTur3ghr0aaPx3GnjdPwBXdMwG-AlGLD90w-PM/edit#gid=596522078"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company_name": "={{ $json.organic_results[0].title }}",
+            "company_website": "={{ $json.organic_results[0].snippet }}",
+            "company_reviews": "={{ $('Trustpilot review Analyzer').item.json.text }}",
+            "company_business_profile": "={{ $('Get row(s) in sheet').item.json.LinkedIn_Profile_url }}",
+            "company_linkedin_extracr": "={{ $('Information Extractor').item.json.output[0].text }}\n\nkey offerings:\n{{ $json.related_questions[1].references[4].snippet }}\n\nProducts and services :\n{{ $('Trustpilot review Analyzer').item.json.text }}\n\nTarget Audiences : {{ $('Information Extractor').item.json.output[0].text }}\n\nunique Values : {{ $('Edit Fields').item.json.data.metadata.ogTitle }}\n\nCompetitive Advantages :\n{{ $json.related_questions[0].text_blocks[1].list[2].snippet }}\n\n\n\n",
+            "company_followers_on_linkedin": "={{ $json.organic_results[0].displayed_link }}",
+            "company_about_us": "={{ $json.organic_results[2].snippet }}",
+            "company_industry": "={{ $json.organic_results[0].snippet }}",
+            "company_size": "={{ $json.organic_results[1].snippet }}",
+            "company_headquaters": "={{ $('Information Extractor').item.json.output[0].text }}",
+            "company_founded": "={{ $json.related_questions[2].snippet }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_website",
+              "displayName": "company_website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_reviews",
+              "displayName": "company_reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_business_profile",
+              "displayName": "company_business_profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_linkedin_extracr",
+              "displayName": "company_linkedin_extracr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_followers_on_linkedin",
+              "displayName": "company_followers_on_linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_about_us",
+              "displayName": "company_about_us",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_industry",
+              "displayName": "company_industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_size",
+              "displayName": "company_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_headquaters",
+              "displayName": "company_headquaters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_founded",
+              "displayName": "company_founded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        2752
+      ],
+      "id": "63e70768-19cb-4f47-9921-f61034d9e021",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Trustpilot Review Analyser": [
+      {
+        "json": {
+          "text": "# Zomato - Customer Review Summary\n\n## Overall Company Feedback:\nThe general sentiment towards Zomato is extremely negative, with a TrustScore of 1.2 out of 5, based on 862 reviews. Customers consistently express frustration and disappointment with the service, citing issues related to poor delivery, unresponsive customer support, and fraudulent practices. While some reviews mention positive experiences with specific restaurants, the overwhelming majority highlight a lack of reliability and repeated problems with order accuracy and refunds.\n\n## Product Sentiment Analysis:\n- **Food Delivery Service:** Negative sentiment - Numerous complaints focus on incorrect orders, missing items, and long delivery times. Many customers describe their experiences as frustrating and unprofessional.\n- **Customer Service:** Negative sentiment - A significant number of reviews discuss the lack of response from customer service, with users describing it as non-existent or generic and unhelpful.\n- **Refund Process:** Negative sentiment - Customers have reported difficulties in obtaining refunds for canceled orders or missing items, leading to accusations of fraud and untrustworthiness.\n\n## Key Improvement Areas:\n1. **Enhance Customer Support:** Improve the responsiveness and effectiveness of customer service to address issues more efficiently, possibly by introducing a better escalation process for complaints.\n2. **Delivery Accuracy and Timeliness:** Focus on ensuring that orders are delivered correctly and in a timely manner to restore trust in the delivery service.\n3. **Transparency in Communication:** Provide clearer communication regarding order statuses, refund processes, and company policies to instill confidence in customers regarding their transactions."
+        }
+      }
+    ],
+    "HTTP Request": [
+      {
+        "json": {
+          "data": "Title: Zomato - India’s #1 Food delivery app\n\nURL Source: http://zomato.com/\n\nMarkdown Content:\n![Image 1](https://b.zmtcdn.com/images/square_zomato_logo_new.svg)\n\nOnline ordering and  \nmuch more on the app\n\n![Image 2: Zomato logo (loading)](blob:http://localhost/b9a31d3949b1882a09ed2f8508d538f3)\n\n![Image 3: Zomato logo](https://b.zmtcdn.com/data/o2_assets/52c985ee025e442b74fb4c91cbe20ced1743099385.png)\n\n![Image 4: Zomato logo (loading)](https://b.zmtcdn.com/web/logo/low/6d289d7188aeb23d3c0c76b74915b9931587822718.png)\n\n![Image 5: Zomato logo](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\nExperience fast & easy online ordering on the Zomato app\n\nBetter food for more people\n\nFor over a decade, we’ve enabled our customers to discover new tastes, delivered right to their doorstep\n\n![Image 6](https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png)![Image 7](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 8](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 9](https://b.zmtcdn.com/data/o2_assets/364f85b5586700f0a3f7108cedf543011739962117.png)![Image 10](https://b.zmtcdn.com/data/o2_assets/3d1b3a891e2c59fd5ae7654dd207370b1739514134.png)![Image 11](https://b.zmtcdn.com/data/o2_assets/c7523de995639024918c6947c4b2cdcd1742894059.png)\n\n3,00,000+\n\nrestaurants\n\n![Image 12](https://b.zmtcdn.com/data/o2_assets/d19ec60986487a77bcb026e5efc3325f1742908200.png)\n\n800+\n\ncities\n\n![Image 13](https://b.zmtcdn.com/data/o2_assets/e7533c4081d6140da37b9f430cb7b8051743006192.png)\n\n3 billion+\n\norders delivered\n\n![Image 14](https://b.zmtcdn.com/data/o2_assets/713443cc5944ce4284d7e49e75e2aacf1742466222.png)\n\nWhat’s waiting for you\n\non the app?\n\nOur app is packed with features that enable you to experience food delivery like never before\n\n![Image 15](https://b.zmtcdn.com/data/o2_assets/82f145180cd6f920a8a8617dda366a0a1742455963.png)\n\nVeg Mode\n\n![Image 16](https://b.zmtcdn.com/data/o2_assets/d0f1639403f80f8f2c19e0d538222e661742455804.png)\n\nHealthy\n\n![Image 17](https://b.zmtcdn.com/data/o2_assets/541a9b65443d5d378e1b2d18319663f41742455727.png)\n\nHomely  \nmeals\n\n![Image 18](https://b.zmtcdn.com/data/o2_assets/85fa7a0c955ba0f8d894b6b68a27cdf81742978539.png)\n\nQuick  \ndelivery\n\n![Image 19](https://b.zmtcdn.com/data/o2_assets/5e7aab0f183b36fc12c29279f0cb55181742462245.png)\n\nPlan  \na Party\n\n![Image 20](https://b.zmtcdn.com/data/o2_assets/813952c961fd13588cb71867d84ea7dc1742455815.png)\n\nOffers\n\n![Image 21](https://b.zmtcdn.com/data/o2_assets/06d090307e02772693ac06123b53459b1742455939.png)\n\nFood on  \nTrain\n\n![Image 22](https://b.zmtcdn.com/data/o2_assets/6e27c9acde6045c272a28e6eb275727e1742455789.png)\n\nGourmet\n\n![Image 23](https://b.zmtcdn.com/data/o2_assets/867f86a10503998e437963bb37c451591742455764.png)\n\nGift Cards\n\n...and a lot more\n\n![Image 24](https://b.zmtcdn.com/data/o2_assets/6ecb2e1b4e412376645848c9c39098a81739521607.png)![Image 25](https://b.zmtcdn.com/data/o2_assets/eae1c0140168456506dca2736dc9b1c61742909660.png)![Image 26](https://b.zmtcdn.com/data/o2_assets/22c34e84a18aed26be7638c77e4e695b1742909865.png)![Image 27: zomato logo](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\n![Image 28: zomato logo](https://b.zmtcdn.com/data/o2_assets/fe0795a6c0061186abc4d9af9771ac751738564951.png)\n\nIndia’s Top Savings Program for Food Lovers\n\nGOLD BENEFITS\n\n![Image 29](https://b.zmtcdn.com/data/o2_assets/bc9d2a579285cbdaa101b8fe2ba68f601741779645.png)\n\nFree Delivery\n\nAt all restaurants within 7 km\n\n![Image 30](https://b.zmtcdn.com/data/o2_assets/d668ed26c7d4771318d0aa03b3f905e71741779899.png)\n\nUp to 30% extra off\n\nAt 20,000+ partner restaurants\n\n![Image 31: eternal logo](https://b.zmtcdn.com/data/o2_assets/81ed35564614cbdf5188bb72dc7e57b51739536377.png)\n\nPOWERING INDIA’S CHANGING LIFESTYLE\n\n![Image 32: district](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\n![Image 33: blinkit](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\n![Image 34: hyperpure](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\n![Image 35: zomato](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\n![Image 36: district](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\n![Image 37: blinkit](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\n![Image 38: hyperpure](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\n![Image 39: zomato](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\nhyperpure\n\nOffering complete supply chain solution for your restaurant\n\n[Check it out](https://hyperpure.app.link/0yVEsAZUl8)\n\n![Image 40: Eternal Watermark](https://b.zmtcdn.com/data/o2_assets/3010d6966150c5274ade97b8f24212961739536710.png)\n\n![Image 41: eternal logo](https://b.zmtcdn.com/data/o2_assets/e6b11be581b91b410684fa16287f565c1738647242.png)\n\nDownload the app now!\n\nExperience seamless food ordering  \nwith the Zomato app\n\n[![Image 42: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 43: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\n![Image 44: Zomato logo (loading)](blob:http://localhost/b9a31d3949b1882a09ed2f8508d538f3)\n\n![Image 45: Zomato logo](https://b.zmtcdn.com/data/o2_assets/52c985ee025e442b74fb4c91cbe20ced1743099385.png)\n\n![Image 46](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\nIndia’s #1  \nfood delivery app\n------------------------------\n\nExperience fast & easy online ordering on the Zomato app\n\n[![Image 47: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 48: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\nScroll down\n\n![Image 49](https://b.zmtcdn.com/data/o2_assets/901001826baf04838b1bf505176ff0b11742453501.png)\n\n![Image 50](https://b.zmtcdn.com/data/o2_assets/901001826baf04838b1bf505176ff0b11742453501.png)\n\nBetter food for more people\n\nFor over a decade, we’ve enabled our customers to discover new tastes, delivered right to their doorstep\n\n![Image 51](https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png)![Image 52](https://b.zmtcdn.com/data/o2_assets/b4f62434088b0ddfa9b370991f58ca601743060218.png)![Image 53](https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png)![Image 54](https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png)![Image 55](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 56](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)\n\n3,00,000+\n\nrestaurants\n\n![Image 57: menu icon](https://b.zmtcdn.com/data/o2_assets/d19ec60986487a77bcb026e5efc3325f1742908200.png)\n\n800+\n\ncities\n\n![Image 58: menu icon](https://b.zmtcdn.com/data/o2_assets/e7533c4081d6140da37b9f430cb7b8051743006192.png)\n\n3 billion+\n\norders delivered\n\n![Image 59: menu icon](https://b.zmtcdn.com/data/o2_assets/713443cc5944ce4284d7e49e75e2aacf1742466222.png)\n\nWhat’s waiting for you  \non the app?\n\nOur app is packed with features that enable you to experience food delivery like never before\n\n![Image 60](https://b.zmtcdn.com/data/o2_assets/d0f1639403f80f8f2c19e0d538222e661742455804.png)\n\nHealthy\n\n![Image 61](https://b.zmtcdn.com/data/o2_assets/82f145180cd6f920a8a8617dda366a0a1742455963.png)\n\nVeg Mode\n\n![Image 62](https://b.zmtcdn.com/data/o2_assets/5e7aab0f183b36fc12c29279f0cb55181742462245.png)\n\nPlan  \na Party\n\n![Image 63](https://b.zmtcdn.com/data/o2_assets/867f86a10503998e437963bb37c451591742455764.png)\n\nGift Cards\n\n![Image 64: mobile frame](https://b.zmtcdn.com/data/o2_assets/3f7e2757e62fd22592b879bd56b666011742294630.png)\n\n![Image 65](https://b.zmtcdn.com/data/o2_assets/85fa7a0c955ba0f8d894b6b68a27cdf81742978539.png)\n\nQuick  \ndelivery\n\n![Image 66](https://b.zmtcdn.com/data/o2_assets/6e27c9acde6045c272a28e6eb275727e1742455789.png)\n\nGourmet\n\n![Image 67](https://b.zmtcdn.com/data/o2_assets/813952c961fd13588cb71867d84ea7dc1742455815.png)\n\nOffers\n\n![Image 68](https://b.zmtcdn.com/data/o2_assets/06d090307e02772693ac06123b53459b1742455939.png)\n\nFood on  \nTrain\n\n![Image 69](https://b.zmtcdn.com/data/o2_assets/541a9b65443d5d378e1b2d18319663f41742455727.png)\n\nHomely  \nmeals\n\n![Image 70](https://b.zmtcdn.com/data/o2_assets/e7a502b732de9cd0d5ceca82306137ca1743059837.png)![Image 71](https://b.zmtcdn.com/data/o2_assets/ef5bc22bc703882ccb11a5b75ad6704b1743059783.png)![Image 72](https://b.zmtcdn.com/data/o2_assets/3658cc04dba86e5dfa2d99f070e1fc171743059861.png)\n\n![Image 73: Gold logo](https://b.zmtcdn.com/data/o2_assets/5f94743e20e3f668953fda8b0e56f2f71742996005.png)\n\nIndia’s Top Savings\n\nProgram for Food Lovers\n\nGOLD BENEFITS\n\n![Image 74](https://b.zmtcdn.com/data/o2_assets/bc9d2a579285cbdaa101b8fe2ba68f601741779645.png)\n\nFree Delivery\n\nAt all restaurants within 7 km\n\n![Image 75](https://b.zmtcdn.com/data/o2_assets/d668ed26c7d4771318d0aa03b3f905e71741779899.png)\n\nUp to 30% extra off\n\nAt 20,000+ partner restaurants\n\n![Image 76](https://b.zmtcdn.com/data/o2_assets/f64b00427de0a6858432f039ef9e03731739364398.png)\n\n![Image 77](https://b.zmtcdn.com/data/o2_assets/e80d61bfc77eb2ac157e9807ab021e7b1739365197.png)\n\n![Image 78: eternal logo](https://b.zmtcdn.com/data/o2_assets/81ed35564614cbdf5188bb72dc7e57b51739536377.png)\n\nPOWERING INDIA’S  \nCHANGING LIFESTYLES\n\n![Image 79](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\nzomato\n\nGet the app now to start ordering your favorite dishes!\n\n![Image 80](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\nblinkit\n\nChoose from 10,000+ products & get them delivered in minutes\n\n![Image 81](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\ndistrict\n\nThe best of events, movies, dining, and everything you love!\n\n![Image 82](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\nhyperpure\n\nOffering complete supply chain solution for your restaurant\n\nDownload the app now!\n\nExperience seamless online ordering\n\nonly on the Zomato app\n\n[![Image 83: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 84: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\n![Image 85](https://b.zmtcdn.com/data/o2_assets/3f7e2757e62fd22592b879bd56b666011742294630.png)\n\nScan the QR code to download the app\n\n![Image 86: download zomato app](https://b.zmtcdn.com/data/o2_assets/98cc4eba0a6f59e728e5223a70fd39551742471514.png)\n"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot Reviews": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot Review": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot Review Analyser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trustpilot Review Analyser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Website Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot Review Analyser": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Website Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetCompanyInfos": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items5": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetCompanyInfos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Analysis": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot review Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trustpilot review Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot review Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Jina AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jina AI": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetCompanyInfos2 (Free)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetCompanyInfos2 (Free)": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fb717d3d-5023-412f-8064-af15bc0951b5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "2iWHd8ykNhu687uf",
+  "tags": []
+}

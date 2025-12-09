@@ -1,0 +1,395 @@
+{
+  "name": "rb2b x enrichment x cold outreach campaign lecture",
+  "nodes": [
+    {
+      "parameters": {
+        "additionalFields": {
+          "company": "={{ $json.company }}",
+          "country": "={{ $json.country }}",
+          "first_name": "={{ $json.first_name }}",
+          "full_name": "={{ $json.full_name }}",
+          "last_name": "={{ $json.last_name }}",
+          "linkedin": "={{ $json.email }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dropcontact",
+      "typeVersion": 1,
+      "position": [
+        -2912,
+        -1536
+      ],
+      "id": "6944d3d0-99f6-4b3d-8818-908033d1969f",
+      "name": "Dropcontact",
+      "credentials": {
+        "dropcontactApi": {
+          "id": "khaRlGLZ9pKeEKZU",
+          "name": "Dropcontact account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Slack input\nconst msg = $input.first().json;\n\n// Some events use msg.message, others use msg\nconst slackMsg = msg.message || msg;\n\n// Slack message text\nconst text = slackMsg?.text || \"\";\n\n// Initialize result\nconst info = {\n  first_name: \"\",\n  last_name: \"\",\n  full_name: \"\",\n  company: \"\",\n  linkedin: \"\",\n  email: \"\",\n  country: \"\"\n};\n\n// ----------------------\n// Extract Name\n// ----------------------\nconst nameMatch = text.match(/Name:\\s*(.*?)(?:\\n|$)/i);\nif (nameMatch) {\n  info.full_name = nameMatch[1].trim();\n  const parts = info.full_name.split(\" \");\n  info.first_name = parts[0] || \"\";\n  info.last_name = parts.slice(1).join(\" \");\n}\n\n// ----------------------\n// Extract Company\n// ----------------------\nconst companyMatch = text.match(/Company:\\s*(.*?)(?:\\n|$)/i);\nif (companyMatch) info.company = companyMatch[1].trim();\n\n// ----------------------\n// Extract Email\n// ----------------------\nconst emailMatch = text.match(/Email:\\s*(?:<mailto:)?([^|\\s<>]+@[^|\\s<>]+)/i);\nif (emailMatch) {\n  info.email = emailMatch[1].trim();\n}\n\n// Fallback to blocks\nif (!info.email && slackMsg?.blocks) {\n  for (const block of slackMsg.blocks) {\n    if (block?.type === \"rich_text\") {\n      for (const el of block.elements || []) {\n        if (el.type === \"rich_text_section\") {\n          for (const sub of el.elements || []) {\n            if (sub.type === \"link\" && sub.url?.startsWith(\"mailto:\")) {\n              info.email = sub.url.replace(\"mailto:\", \"\");\n            }\n          }\n        }\n      }\n    }\n  }\n}\n\n// ----------------------\n// Extract LinkedIn\n// ----------------------\nconst linkedinMatch = text.match(/LinkedIn:\\s*(?:<?)([^ \\n>|]+linkedin[^ \\n>|]+)/i);\nif (linkedinMatch) {\n  info.linkedin = linkedinMatch[1].trim();\n}\n\n// Fallback to blocks\nif (!info.linkedin && slackMsg?.blocks) {\n  for (const block of slackMsg.blocks) {\n    if (block?.type === \"rich_text\") {\n      for (const el of block.elements || []) {\n        if (el.type === \"rich_text_section\") {\n          for (const sub of el.elements || []) {\n            if (sub.type === \"link\" && sub.url?.includes(\"linkedin.com\")) {\n              info.linkedin = sub.url;\n            }\n          }\n        }\n      }\n    }\n  }\n}\n\n// ----------------------\n// Extract Location\n// ----------------------\nconst locMatch = text.match(/Location:\\s*(.*?)(?:\\n|$)/i);\nif (locMatch) info.country = locMatch[1].trim();\n\n// Return clean object\nreturn info;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3152,
+        -1536
+      ],
+      "id": "7d62c4b9-79e0-4c6b-8441-1b49146e2904",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "96a877a4-5443-4b56-8406-75c3de43b762",
+              "leftValue": "={{ $('Dropcontact').item.json.email[0].email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2112,
+        -1552
+      ],
+      "id": "2dbb5130-8488-487a-ba60-b55e6b3a9f81",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a personalized email (under 50 words) to {{ $json.first_name }}{{ $json.last_name }},  who is at {{ $json.company }}({{ $json.nb_employees }} employees) in {{ $json.country }}. They visited our website but haven't converted to a client.\n\nGuidelines:\n\n- Keep the email under 50 words (not including the subject line or signature)\n- Use a short subject line that includes their first name and company name \n- Mention their website visit in a non-creepy way\n- Reference their company size (use the variable), country, and any relevant details\n- Make the call-to-action: \"Lmk how can I help you?\"\n- Write in a direct, brief, and genuinely helpful tone—not like a marketing bot\n- Sign off as \"Vinodhan, Student, KIOT\"\n- Separate greeting, body, and signature with line breaks\n- No generic or templated language; make it feel specifically written for this person and company\n\n\nExample Output:\nSubject: Adrienne, quick idea for Secureframe\n\nHi {{ $json.full_name }},\n\nSaw you visited our site—impressed by your work scaling Secureframe’s marketing. I have a lead gen idea tailored for your team. Lmk how can I help you?\n\nBest,\nVinodhan From KIOT",
+        "options": {
+          "systemMessage": "=You are an expert sales copywriter who specializes in creating brief, highly personalized emails that convert prospects into clients. You write in a conversational, authentic tone that stands out from typical sales emails.\n\nFollow these rules precisely:\n1. Keep all emails under 50 words (excluding subject line and signature)\n2. Include a personalized subject line that mentions the company name\n3. Acknowledge that you noticed their website visit in a non-creepy way\n4. Reference specific details about their company, industry, or role\n5. Include a single, clear call-to-action (usually asking for a brief call)\n6. Sound like a helpful human, not a marketing bot\n7. Write in a direct, concise style with 1-2 sentence paragraphs\n8. Always sign off as \"Vinodhan From KIOT\"\n9. Format properly with line breaks between greeting, paragraphs, and signature\n10. Never use obvious templates or generic marketing language\n\nThe email should feel like it was crafted specifically for this person based on research about them and their company."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -2688,
+        -1536
+      ],
+      "id": "c1c4b6b1-907c-4724-92cd-a518e6dedf62",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -2720,
+        -1280
+      ],
+      "id": "76221de0-5fdb-40a4-8a29-bd4b745038f2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b65cd0d4-714c-4b66-a401-f04af0bfd0ab",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "valid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1664,
+        -1584
+      ],
+      "id": "acd8e2fe-8a0b-441b-9f88-23fdcb610cb2",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $('If').item.json.subject }}",
+        "message": "={{ $('If').item.json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1440,
+        -1664
+      ],
+      "id": "282e8818-f83a-429c-ab50-2f1a3217201d",
+      "name": "Gmail",
+      "webhookId": "177465f6-05ff-49fc-93da-08392cb48577",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: items[0].json.output contains the email string\nconst emailText = items[0].json.output;\n\n// Find the index of the first double line break\nconst splitIndex = emailText.indexOf('\\n\\n');\n\n// Extract and clean the subject line\nconst subjectLine = emailText.substring(0, splitIndex).replace('Subject: ', '').trim();\n\n// Extract the email body\nconst emailBody = emailText.substring(splitIndex + 2).trim();\n\n// Output as a new object\nreturn [\n  {\n    json: {\n      subject: subjectLine,\n      body: emailBody\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2336,
+        -1536
+      ],
+      "id": "c7d72efe-c0ae-4c18-9559-9fa9d9e1f45f",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "any_event"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C0A1LMSG3V3",
+          "mode": "list",
+          "cachedResultName": "social"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3424,
+        -1536
+      ],
+      "id": "107e5232-ee51-493b-9c1b-eaff5884abf0",
+      "name": "Slack Trigger",
+      "webhookId": "ac6fed66-f1e5-4c2f-a306-1233c0fa98d9",
+      "credentials": {
+        "slackApi": {
+          "id": "3jwXsMra2wwoouE1",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://emailverifier.reoon.com/api/v1/verify?email={{ $('Dropcontact').item.json.email[0].email }} &key=veFL9B0iZDU8Q2FhQm7XJ4j04zDSnVm3&mode=quick\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1856,
+        -1600
+      ],
+      "id": "a39d4e6c-3373-4dcf-bd1d-dd9c97af01fd",
+      "name": "Gmail Messages"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.heyreach.io/api/public/campaign/AddLeadsToCampaign",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "jJvasI3GoRnIMPKeocaNfIQdBiQHqXlg/oTTXmVyC5Q="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "text/plain"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"campaignId\": 115122,\n    \"accountLeadPairs\": [\n        {\n            \"linkedInAccountId\": 71043,\n            \"lead\": {\n                \"firstName\": \"{{ $('Dropcontact').item.json.first_name }}\",\n                \"lastName\": \"{{ $('Dropcontact').item.json.last_name }}\",\n                \"location\": \"{{ $('Dropcontact').item.json.country }}\",\n                \"companyName\": \"{{ $('Dropcontact').item.json.company }}\",\n                \"about\": \"{{ $('AI Agent').item.json.output }}\",\n                \"profileUrl\": \"https://{{ $('Dropcontact').item.json.linkedin }}\"\n            }\n        }\n    ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1776,
+        -1328
+      ],
+      "id": "88fe15be-53ea-4ca9-9a5c-1df97e924ae1",
+      "name": "HTTPS Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Dropcontact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dropcontact": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Gmail Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTPS Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTPS Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Messages": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5d938463-13da-4732-9c2d-145c23c48b1e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "E0qz3DICt1rzbRkt",
+  "tags": []
+}

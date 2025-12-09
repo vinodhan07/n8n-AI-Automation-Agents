@@ -1,0 +1,868 @@
+{
+  "name": "Ultimate Company Research (Webinar)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "566dca2f-e952-441c-967a-567d4356d7ee",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64",
+          "mode": "list",
+          "cachedResultName": "Ultimate Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Company List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        0
+      ],
+      "id": "809ef5a6-613c-492c-a386-7d9a5151bcd8",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BABF9fd2GiPmlycd",
+          "name": "Google Sheets Cred"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "=https://www.trustpilot.com/review/{{ $json.website }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "2ef51fa4-3109-44a8-a866-d94a0c0e99b5",
+      "name": "Trustpilot Review",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n5wSo2PaZKLcnpoH",
+          "name": "Firecrawl API 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d441989-25fa-4c17-aefa-fe48e2aa5f73",
+              "name": "data.metadata.ogTitle",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ],
+      "id": "d9f5e518-d08b-4093-a406-70246b9a6f5d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data\nconst inputItems = items;\nconst outputItems = [];\n\nfor (let i = 0; i < inputItems.length; i++) {\n  try {\n    const item = inputItems[i].json;\n    \n    // Get the main content\n    const content = item?.data?.metadata?.ogTitle || \"\";\n    \n    // Extract company name\n    let companyName = \"Unknown\";\n    const companyNameMatch = content.match(/# ([A-Za-z0-9]+)Reviews(\\d+)/);\n    if (companyNameMatch) {\n      companyName = companyNameMatch[1];\n    }\n    \n    // Extract trust score\n    let trustScore = \"N/A\";\n    const trustScoreMatch = content.match(/TrustScore (\\d+\\.?\\d*) out of 5/);\n    if (trustScoreMatch) {\n      trustScore = trustScoreMatch[1];\n    }\n    \n    // Extract total reviews\n    let totalReviews = \"0\";\n    const totalReviewsMatch = content.match(/Reviews(\\d+)/);\n    if (totalReviewsMatch) {\n      totalReviews = totalReviewsMatch[1];\n    }\n    \n    // Extract reviews using a different approach\n    const reviews = [];\n    \n    // Find all review blocks\n    // Look for patterns like \"![Rated X out of 5 stars]\"\n    const ratingMatches = [...content.matchAll(/!\\[Rated (\\d) out of 5 stars\\]/g)];\n    \n    for (let j = 0; j < ratingMatches.length; j++) {\n      const ratingMatch = ratingMatches[j];\n      const rating = ratingMatch[1]; // This contains the actual rating (1-5)\n      \n      // Get the position where this rating appears in the content\n      const startPos = ratingMatch.index;\n      \n      // Define the end position (either the next rating or the end of content)\n      const endPos = (j < ratingMatches.length - 1) ? ratingMatches[j + 1].index : content.length;\n      \n      // Extract this review's block of text\n      const reviewBlock = content.substring(startPos, endPos);\n      \n      // Extract review title\n      let title = \"\";\n      const titleMatch = reviewBlock.match(/\\*\\*([^*]+)\\*\\*/);\n      if (titleMatch) {\n        title = titleMatch[1].trim();\n      } else {\n        // Try alternate title formats\n        const altTitleMatch = reviewBlock.match(/\\n\\n\\[([^\\]]+)\\]/);\n        if (altTitleMatch) {\n          title = altTitleMatch[1].trim();\n        }\n      }\n      \n      // Extract review content - find text after the rating that's not part of metadata\n      let reviewContent = \"\";\n      // First look for text between the title and \"Date of experience\"\n      if (reviewBlock.includes(\"**Date of experience:**\")) {\n        const textBeforeDate = reviewBlock.split(\"**Date of experience:**\")[0];\n        \n        // Extract the main content, skipping the title and other metadata\n        const contentMatch = textBeforeDate.match(/\\]\\(https:\\/\\/www\\.trustpilot\\.com\\/reviews\\/[^)]+\\) ([\\s\\S]+)$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        } else {\n          // If no URL pattern, try a simpler approach\n          const simpleMatch = textBeforeDate.match(/\\n\\n([^*\\n]+(?:\\n[^*\\n]+)*)\\n\\n$/);\n          if (simpleMatch) {\n            reviewContent = simpleMatch[1].trim();\n          }\n        }\n      } else {\n        // If there's no date pattern, get content after any metadata\n        const contentMatch = reviewBlock.match(/\\n\\n([^*\\n\\[]+(?:\\n[^*\\n\\[]+)*)\\n*$/);\n        if (contentMatch) {\n          reviewContent = contentMatch[1].trim();\n        }\n      }\n      \n      // Extract experience date\n      let experienceDate = \"\";\n      const expDateMatch = reviewBlock.match(/\\*\\*Date of experience:\\*\\* ([^\\n]+)/);\n      if (expDateMatch) {\n        experienceDate = expDateMatch[1].trim();\n      }\n      \n      // Fallback for review content - if nothing extracted properly\n      if (!reviewContent && title) {\n        // Just get all text in the block after the title\n        const titlePos = reviewBlock.indexOf(title);\n        if (titlePos > -1) {\n          reviewContent = reviewBlock.substring(titlePos + title.length).replace(/^\\*+|\\n+|\\*+$/g, '').trim();\n        }\n      }\n      \n      // Add the review if we have at least something\n      if (title || reviewContent) {\n        reviews.push({\n          rating: rating,\n          title: title || \"No title\",\n          content: reviewContent || \"No content\",\n          experience_date: experienceDate\n        });\n      }\n    }\n    \n    // Output the structured data\n    outputItems.push({\n      json: {\n        company: companyName,\n        total_reviews: totalReviews,\n        trust_score: trustScore,\n        reviews: reviews\n      }\n    });\n  } catch (error) {\n    // If there's an error, output a default object\n    outputItems.push({\n      json: {\n        company: \"Error extracting data\",\n        total_reviews: \"0\",\n        trust_score: \"N/A\",\n        reviews: [],\n        error: error.message\n      }\n    });\n  }\n}\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "45614f4c-5180-4cea-9bd9-7a8dd1b5d9ae",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        220
+      ],
+      "id": "5e27863e-0358-40ba-a019-f8d9124ef36a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "9WpWmiE8A7Gl3BYM",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company Name: {{ $json.company }}\n\nReviews: {{ $('Edit Fields').item.json.data.metadata.ogTitle }}\n\nExpected Output:\n\n{{ $json.company }} - Customer Review Summary\n\nOverall Company Feedback: Summarize the general sentiment about the company based on customer experiences. Highlight both positive and negative aspects.\n\nProduct Sentiment Analysis: Identify key products or services mentioned in the reviews. For each product, indicate whether the sentiment is mostly positive, negative, or mixed. Example:\n\nProduct: Positive sentiment\nProduct: Negative sentiment\nKey Improvement Areas: Suggest the top 2-3 areas where the company can improve based on the negative feedback.\n\nEnsure that the final output starts with the company name as the heading, followed by a structured summary."
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "c0e74551-43c7-4332-82a3-eb7af97fcc20",
+      "name": "Trustpilot Review Analyser"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $('Google Sheets').item.json.website }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer jina_5272ae9198de429682132d2c2b7293c4xCPzLb_6bxR0n0Yi681_hZqOjNzk"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        0
+      ],
+      "id": "260699b3-b15f-4906-bb0b-76b3385e9f3c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "text": "=## Task Overview\nYou are provided with the text content from a company's website. Your task is to analyze this content and generate a comprehensive company profile in JSON format.\n\nHere is the website content: {{ $json.data }}\n\n## Objective\nCreate a structured JSON object that captures key information about the company, including:\n\nCompany basics (name, industry, location)\nBusiness overview\nProducts/Services\nKey features and value propositions\nTarget audience/market\nCompany culture and values (if available)\n\n## Output Format\nThe output should be a valid JSON object with the following structure:\n{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}\n\n## Instructions\n\nContent Analysis:\n\nCarefully review all provided website content\nExtract relevant information for each section\nFocus on factual information directly stated in the content\nDo not make assumptions or include external information\n\n\n## Data Organization:\n\n- Organize information into appropriate categories\n- Use clear, concise language\n- Maintain original terminology where appropriate\n- Include specific details when available\n\n\n## Quality Guidelines:\n\n- Ensure accuracy of extracted information\n- Use professional language\n- Avoid marketing language or subjective claims\n- Include only information present in the source content\n\n\n## Field-Specific Guidelines:\n\n### Company Basics:\n\n- Extract official company name and location\n- Identify primary industry sector\n- Include founding date if available\n- Include official website URL\n\n### Business Overview:\n\n- Summarize main business activities\n- Include mission statement if explicitly stated\n- List primary offerings or services\n\n### Products and Services:\n\n- List main products/services\n- Detail key features and capabilities\n- Include pricing model information if available\n\n### Market Position:\n\n- Identify stated target market\n- Extract unique selling propositions\n- List competitive advantages mentioned\n\n### Company Culture:\n\n- Include stated company values\n- Describe work environment if mentioned\n- List team/employee highlights\n\n## Additional Information:\n\n- Include relevant certifications\n- List notable partnerships\n- Include significant achievements\n\n\n### Handling Missing Information:\n\n- If information for a field is not available, use null\n- Do not make assumptions to fill gaps\n- Only include explicitly stated information\n\n\n\n## Validation Checklist\n\n- All JSON syntax is valid\n- Information is accurately extracted from source\n- No external information is included\n- Missing information is properly handled\n- Language is professional and objective\n- All sections are properly populated where information is available\n\n## Important Notes\n\n- Focus on extracting factual information only\n- Do not include subjective interpretations\n- Maintain original context of information\n- Exclude promotional or marketing language\n- Handle missing information appropriately\n- Ensure JSON structure remains consistent",
+        "schemaType": "manual",
+        "inputSchema": "{\n    \"company_basics\": {\n        \"name\": \"\",\n        \"industry\": \"\",\n        \"headquarters\": \"\",\n        \"founded\": \"\",\n        \"website\": \"\"\n    },\n    \"business_overview\": {\n        \"description\": \"\",\n        \"mission_statement\": \"\",\n        \"key_offerings\": []\n    },\n    \"products_and_services\": {\n        \"main_offerings\": [],\n        \"key_features\": [],\n        \"pricing_model\": \"\"\n    },\n    \"market_position\": {\n        \"target_audience\": \"\",\n        \"unique_value_proposition\": \"\",\n        \"competitive_advantages\": []\n    },\n    \"company_culture\": {\n        \"values\": [],\n        \"work_environment\": \"\",\n        \"team_highlights\": \"\"\n    },\n    \"additional_info\": {\n        \"certifications\": [],\n        \"partnerships\": [],\n        \"notable_achievements\": []\n    }\n}\n",
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "69edf7a6-2c2c-4ae9-b0f7-3752e0ffb6f4",
+      "name": "Website Analysis"
+    },
+    {
+      "parameters": {
+        "url": "=https://nubela.co/proxycurl/api/linkedin/company?url={{ $('Google Sheets').item.json.linkedin_profile_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2260,
+        0
+      ],
+      "id": "e6dc6786-992a-43c8-b6a6-667e226c3d68",
+      "name": "GetCompanyInfos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ob6Xk15XLcei648i",
+          "name": "Nubela"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2040,
+        0
+      ],
+      "id": "d22d4380-9e0d-4eda-8625-4fbe8a0577e0",
+      "name": "Loop Over Items5",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        0
+      ],
+      "id": "537e43ba-bc27-4d56-b3eb-6eee605cef32",
+      "name": "Wait4",
+      "webhookId": "be28fef4-78dd-478a-a01d-4b19b9aa351a"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64",
+          "mode": "list",
+          "cachedResultName": "Ultimate Company Research",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 357739692,
+          "mode": "list",
+          "cachedResultName": "Scrape Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dtbGc55jVjHtSlDbHLW6P0G1GZjRo6hcbN1pHpreZ64/edit#gid=357739692"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company_name": "={{ $json.name }}",
+            "company_website": "={{ $('Website Analysis').item.json.output.company_basics.website }}",
+            "company_reviews": "={{ $('Trustpilot Review Analyser').item.json.text }}",
+            "Company_business_profile": "={{ $('Website Analysis').item.json.output.business_overview.description }}\n\nKey offerings: {{ $('Website Analysis').item.json.output.business_overview.key_offerings[0] }}, {{ $('Website Analysis').item.json.output.business_overview.key_offerings[1] }}\n\nProducts and ServiceS: {{ $('Website Analysis').item.json.output.products_and_services.main_offerings[0] }}\n\nTarget Audience: {{ $('Website Analysis').item.json.output.market_position.target_audience }}\n\nUnique Values: {{ $('Website Analysis').item.json.output.market_position.unique_value_proposition }}\n\nCompetitive Advantage: {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[0] }}, {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[1] }}, {{ $('Website Analysis').item.json.output.market_position.competitive_advantages[2] }}\n\nCompany Culture: {{ $('Website Analysis').item.json.output.company_culture.values }}, {{ $('Website Analysis').item.json.output.company_culture.work_environment }}, {{ $('Website Analysis').item.json.output.company_culture.team_highlights }}\n\nAchievements: {{ $('Website Analysis').item.json.output.additional_info.notable_achievements[0] }}, {{ $('Website Analysis').item.json.output.additional_info.notable_achievements[1] }}",
+            "company_linkedin_extract": "={{ $('Website Analysis').item.json.output.business_overview.description }}",
+            "company_followers_on_linkedin": "={{ $('GetCompanyInfos').item.json.follower_count }}",
+            "company_about_us": "={{ $('GetCompanyInfos').item.json.tagline }}",
+            "company_industry": "={{ $('Website Analysis').item.json.output.company_basics.industry }}",
+            "company_headquarters": "={{ $('GetCompanyInfos').item.json.locations[0].city }}, {{ $('GetCompanyInfos').item.json.locations[0].country }}",
+            "company_founded": "={{ $('GetCompanyInfos').item.json.founded_year }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_website",
+              "displayName": "company_website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_reviews",
+              "displayName": "company_reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company_business_profile",
+              "displayName": "Company_business_profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_linkedin_extract",
+              "displayName": "company_linkedin_extract",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_followers_on_linkedin",
+              "displayName": "company_followers_on_linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_about_us",
+              "displayName": "company_about_us",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_industry",
+              "displayName": "company_industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_size",
+              "displayName": "company_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_headquarters",
+              "displayName": "company_headquarters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_founded",
+              "displayName": "company_founded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2600,
+        0
+      ],
+      "id": "6fd52100-ec96-4fc1-9cde-027e7c768656",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BABF9fd2GiPmlycd",
+          "name": "Google Sheets Cred"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Google Sheets": [
+      {
+        "json": {
+          "row_number": 2,
+          "website": "zomato.com/",
+          "linkedin_profile_url": "https://www.linkedin.com/company/zomato/"
+        }
+      }
+    ],
+    "Trustpilot Review": [
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "markdown": "[![Zomato logo](https://consumersiteimages.trustpilot.net/business-units/4e35c7190000640005108e27-198x149-1x.jpg)](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=logo_click)\n\n[Visit website](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\nUnclaimed profile\n\n# ZomatoReviews862\n\n•\n\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n1.2\n\n[Restaurant](https://www.trustpilot.com/categories/restaurant)\n\n[Write a review](https://www.trustpilot.com/evaluate/www.zomato.com) [Visit website](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\n[Write a review](https://www.trustpilot.com/evaluate/www.zomato.com)\n\n![](https://businessunitprofile-cdn.trustpilot.net/businessunitprofile-consumersite/public/trustpilot-shield.svg)\n\nCompanies on Trustpilot can’t offer incentives or pay to hide any reviews.\n\n## See what reviewers are saying\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nThe worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launchSee more\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nOrder ID 6764294552.\n\nItem ordered from \" Kakeda hotel\" cybercity , Gurugram. I paid Rs 423 by paytm.\n\nFood from sonewehere else( no name on\n\nPacking) was delivered to my address by delivery partner Gholam Mustafa yesterday evening.\n\nThis is cheating and fraud. Because this is not from the hotel from whuch I ordered.\n\nPlease collect the items from my address and refund the money Rs 423/\\_ back to me asap please. Thanks\n\n1)There is no name of kake da hotel anywhere on this ordinary packaging. Where was this purchased..??\n\n2) I ORDERED FROM KaKE DA HOTEL CYBERCITY gurgaon. THERE IS NO NAME ON PACKAGING.\n\nIt is not the item that I ordered. Because I ordered from Kake da hotel, Cybercity Gurgaon..\n\nThis is not bought from Kake da hotel. Where is the bill of kake da hotel ??\n\nThere is no bill of kake da hotel and no Packaging of \" kake da hotel\".\n\nBUNCH OF CHEATS. THIS ZOMATO\n\nI EMAILED TWICE. THERE IS NO REPLY.\n\nSee more\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nOrdered 2 set meals and only 1 was delivered. Submitted all the proof of items sent and details of my order and they refused to proceed with refund claiming that the restaurant sent the correct order.\n\nTold them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.See more\n\n![Rated 2 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.svg)\n\nin my area there's alot of problems i am facing.there are like price issues. the area i am located in there are operational issues. and many more.\n\nthey are not punctual and even their offers are not appropriate. it's my request to zomato to not take jammu lightly.See more\n\nSee all 862 reviews\n\n* * *\n\n## Company details\n\n1. [Restaurant](https://www.trustpilot.com/categories/restaurant)\n\n#### Information provided by various external sources\n\nFoodiebay - Food Guide and Restaurant Directory with Review and Rating for 7000 Restaurants in Delhi, Gurgaon, Noida, Mumbai, Bangalore, Pune and Kolkata Restaurants\n\n* * *\n\n## Contact info\n\n- [www.zomato.com](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\n1.2\n\n#### Bad\n\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n862 reviews\n\n5-star\n\n4-star\n\n3-star\n\n2-star\n\n1-star\n\n[How this company uses Trustpilot](https://www.trustpilot.com/review/www.zomato.com/transparency)\n\n## People also looked at\n\n[![Swiggy logo](https://consumersiteimages.trustpilot.net/business-units/5c03a61ad3d896000100cc5f-198x149-1x.jpg)\\\\\n\\\\\n**Swiggy** \\\\\nswiggy.com\\\\\n\\\\\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\\\\\n\\\\\n1.2\\\\\n\\\\\n(755)](https://www.trustpilot.com/review/swiggy.com)\n\n[**Zomato** \\\\\nzomato.in\\\\\n\\\\\n![TrustScore 2.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.5.svg)\\\\\n\\\\\n2.7\\\\\n\\\\\n(35)](https://www.trustpilot.com/review/zomato.in)\n\n[![McDonald’s logo](https://consumersiteimages.trustpilot.net/business-units/4be2cac100006400050859c1-198x149-1x.jpg)\\\\\n\\\\\n**McDonald’s** \\\\\nwww.macdonalds.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.6\\\\\n\\\\\n(2K)](https://www.trustpilot.com/review/www.macdonalds.com)\n\n[![Flipkart logo](https://consumersiteimages.trustpilot.net/business-units/4bdc080f0000640005057d24-198x149-1x.jpg)\\\\\n\\\\\n**Flipkart** \\\\\nwww.flipkart.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.5\\\\\n\\\\\n(2K)](https://www.trustpilot.com/review/www.flipkart.com)\n\n[![Amazon logo](https://consumersiteimages.trustpilot.net/business-units/46ad346800006400050092d0-198x149-1x.jpg)\\\\\n\\\\\n**Amazon** \\\\\nwww.amazon.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.6\\\\\n\\\\\n(38K)](https://www.trustpilot.com/review/www.amazon.com)\n\n[**Amazon.in** \\\\\namazon.in\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.3\\\\\n\\\\\n(523)](https://www.trustpilot.com/review/amazon.in)\n\n[**Zomato** \\\\\nzomato.ae\\\\\n\\\\\n![TrustScore 2.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.5.svg)\\\\\n\\\\\n2.3\\\\\n\\\\\n(6)](https://www.trustpilot.com/review/zomato.ae)\n\n[![Makemytrip logo](https://consumersiteimages.trustpilot.net/business-units/4bded848000064000506c48d-198x149-1x.jpg)\\\\\n\\\\\n**Makemytrip** \\\\\nwww.makemytrip.com\\\\\n\\\\\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\\\\\n\\\\\n1.2\\\\\n\\\\\n(1K)](https://www.trustpilot.com/review/www.makemytrip.com)\n\nMore filters\n\nMost recent\n\n* * *\n\n4 days ago\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**The worst ever application in the world…**](https://www.trustpilot.com/reviews/67fa3f8d447c5b157ecc2ff3)\n\nThe worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launch\n\n**Date of experience:** April 12, 2025\n\nUsefulShare\n\nAdvertisement\n\nApr 8, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Order ID 6764294552.**](https://www.trustpilot.com/reviews/67f4ffef5d2a6c7b34974403)\n\nOrder ID 6764294552.\n\nItem ordered from \" Kakeda hotel\" cybercity , Gurugram. I paid Rs 423 by paytm.\n\nFood from sonewehere else( no name on\n\nPacking) was delivered to my address by delivery partner Gholam Mustafa yesterday evening.\n\nThis is cheating and fraud. Because this is not from the hotel from whuch I ordered.\n\nPlease collect the items from my address and refund the money Rs 423/\\_ back to me asap please. Thanks\n\n1)There is no name of kake da hotel anywhere on this ordinary packaging. Where was this purchased..??\n\n2) I ORDERED FROM KaKE DA HOTEL CYBERCITY gurgaon. THERE IS NO NAME ON PACKAGING.\n\nIt is not the item that I ordered. Because I ordered from Kake da hotel, Cybercity Gurgaon..\n\nThis is not bought from Kake da hotel. Where is the bill of kake da hotel ??\n\nThere is no bill of kake da hotel and no Packaging of \" kake da hotel\".\n\nBUNCH OF CHEATS. THIS ZOMATO\n\nI EMAILED TWICE. THERE IS NO REPLY.\n\n**Date of experience:** April 07, 2025\n\nUsefulShare\n\nMar 18, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Refused to do refund even with sufficient proof**](https://www.trustpilot.com/reviews/67d9333cbab7a01de322f29c)\n\nOrdered 2 set meals and only 1 was delivered. Submitted all the proof of items sent and details of my order and they refused to proceed with refund claiming that the restaurant sent the correct order.\n\nTold them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.\n\n**Date of experience:** March 13, 2025\n\nUsefulShare\n\nMar 15, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I canceled My order but stilli didn't…**](https://www.trustpilot.com/reviews/67d5749ef49274410ed928c5)\n\nI canceled My order but stilli didn't receive my amount they are not giving response also how ever they are expert to rob\n\n**Date of experience:** March 15, 2025\n\nUsefulShare\n\nMar 14, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Non-existent customer service**](https://www.trustpilot.com/reviews/67d4171c71676777ce534395)\n\nHorrible customer service. Couldn't get in touch with them at all, regarding horrible food quality from one of their restaurants. It's safer not to use this platform.\n\n**Date of experience:** March 13, 2025\n\nUsefulShare\n\nAdvertisement\n\nMar 11, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I placed an order on the 5 th March…**](https://www.trustpilot.com/reviews/67d0ee9a940e2b2464a19d1d)\n\nI placed an order on the 5 th March 2025 for food items which got cancelled and Zomato said they will refund the money paid immediately. It's nearly 7 days now , I am yet to receive my money back . It's an untrustworthy company. Please be careful with this fraudulent company!\n\n**Date of experience:** March 05, 2025\n\nUseful1Share\n\nMar 10, 2025\n\n![Rated 2 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.svg)\n\n[**in my area there's alot of problems i…**](https://www.trustpilot.com/reviews/67ceff860ff38d82225fcfc9)\n\nin my area there's alot of problems i am facing.there are like price issues. the area i am located in there are operational issues. and many more.\n\nthey are not punctual and even their offers are not appropriate. it's my request to zomato to not take jammu lightly.\n\n**Date of experience:** March 08, 2025\n\nUsefulShare\n\nMar 8, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Thief’s**](https://www.trustpilot.com/reviews/67cc74d47e1762f471d3ecc7)\n\nThief’s, highly unprofessional, worst attitude creatures, a big sham on food industry.\n\n**Date of experience:** March 08, 2025\n\nUseful1Share\n\nMar 2, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Pathetic service-**](https://www.trustpilot.com/reviews/67c55fc7b610fe6d160a5595)\n\nPathetic service- absolutely dissatisfied\n\n**Date of experience:** January 09, 2025\n\nUsefulShare\n\nAdvertisement\n\nMar 1, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**This is useless reply that customer…**](https://www.trustpilot.com/reviews/67c386cae85ad0cc9bf075c9)\n\nThis is useless reply that customer dint pick the call so the delivery partner canceled the order by himself that too prepaid order and after complaining no refund and no product delivery was made\n\nFraud zomato fraud delivey partner and executive ms veena depak kumar delivey boy fraud the action need to ne taken\n\n**Date of experience:** February 28, 2025\n\nUsefulShare\n\nSee if a website is trustworthy without leaving the page\n\n![](https://cdn.trustpilot.net/brand-assets/4.3.0/logo-black.svg)\n\n[Get Chrome extension](https://chrome.google.com/webstore/detail/trustpilot-reviews-rating/dimkjjladgaekdlfebknbaooicmfalke?utm_source=trustpilot&utm_medium=cpp_promotion&utm_campaign=cpp_promotion)\n\nFeb 18, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Nanjangud a town (taluka) has many veg…**](https://www.trustpilot.com/reviews/67b43ed87b443689bd47bdbe)\n\nNanjangud a town (taluka) has many veg restaurants, but this cheap company shows no veg restaurant at 1330 in the afternoon\n\nVer poor service and bad mannered staff\n\n**Date of experience:** February 18, 2025\n\nUsefulShare\n\nFeb 11, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Scam Alert!**](https://www.trustpilot.com/reviews/67ab3b6b6723705e91755fdc)\n\nScam Alert!\n\nI am appalled by the actions of Zomato, which have led to fraudulent practices and poor customer service. After placing an online order and paying ₹349.50, I attempted to edit my delivery instructions, at which point my order was automatically canceled. Despite this, Zomato proceeded to deduct ₹349.50 from my account, and refused to issue a refund when I raised the issue.\n\nThis is outrageous and an unacceptable way to treat customers. Zomato has shown no accountability for their error, and their refusal to resolve the situation makes it clear that they care more about profits than customer satisfaction.\n\nI am sharing this with the public to warn others of the dishonest and unprofessional practices I’ve encountered. I will not stand by while companies like Zomato take money from customers without delivering the promised service. I urge others to be cautious when using this platform and consider the risk of losing your money without any support or resolution from the company.\n\n**Date of experience:** February 10, 2025\n\nUsefulShare\n\nFeb 5, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Zomato Gold or Zomato Cold?**](https://www.trustpilot.com/reviews/67a3c3aa7c7f31edd02b9cdf)\n\nZomato Gold or Zomato Cold?\n\nWow, just wow. I must say, Zomato has truly mastered the art of testing human patience. If there was an award for “Slowest Food Delivery That Doubles as a Social Experiment on Hunger Management,” you guys would sweep the competition.\n\nLet’s talk about today’s record-breaking disaster—the restaurant is 5 minutes away. Not 50, not 15. FIVE. A normal person could’ve walked there, had a meal, tipped the waiter, and strolled back before my food even left the kitchen. But not with Zomato! No, no, no. Here, we embark on a journey. My delivery partner, instead of heading towards me, took a scenic route in the OPPOSITE direction. Maybe he was sightseeing? Maybe he needed a spiritual awakening before delivering my biryani? Who knows!\n\nNaturally, I contacted customer care. “Don’t worry, your order will be on time,” they said. On time for what? My funeral? Because that’s the only logical explanation at this point. An hour later, I call again, and now I get the real plot twist—apparently, the delivery guy’s phone is damaged, so he can’t accept orders. Ah, brilliant. So, instead of fixing the issue an hour ago, they waited for me to starve and then ask if they should reassign it. You tell me, Zomato—what was your backup plan? Manifest the food through sheer willpower? Hope I forget I ordered?\n\nAt this point, I have to ask—is this a food delivery app or an elaborate psychological thriller? Because I swear, even Christopher Nolan couldn’t write a more confusing timeline than my food’s journey.\n\nBut wait, the best part? Right before checkout, Zomato sweetly asks if I’d like to donate to \"Feed India.\" Oh, the irony! I AM the one in need of food right now! Maybe I should start a donation campaign for myself—\"Feed the Hungry Customer Waiting on Zomato.\" Imagine donating money to feed strangers when your own food is stuck in some parallel dimension. The audacity.\n\nAnd just when I thought it couldn’t get worse… The new delivery guy isn’t even moving. It’s been 20 minutes, and this man is sitting like he’s meditating on my food, contemplating life choices. Customer care had the nerve to tell me I’d get my food in 15-20 minutes. Guess what? They’ve now graciously offered me an option to cancel my order. Ah, yes, because waiting over an hour just to be told, “Do you even want the food anymore?” is exactly the five-star experience I was looking for.\n\nSo what’s next, Zomato? Are you going to ask me if I want to cook it myself? Or will you launch a new feature where I pay extra for the privilege of actually receiving my order?\n\nZomato, I bow down to your groundbreaking levels of incompetence. Maybe next time, I’ll just light my money on fire—it’ll be quicker and probably more satisfying. Do better. Or don’t. Either way, I’m ordering from Swiggy.\n\n**Date of experience:** February 06, 2025\n\nUsefulShare\n\nAdvertisement\n\nJan 17, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I've noticed consistent delays in…**](https://www.trustpilot.com/reviews/678a77b7997dac9b5e888fa7)\n\nI've noticed consistent delays in Zomato's delivery service lately. Despite paying a premium for quick delivery, the service often falls short. If delays become the norm, it defeats the purpose of using Zomato. It seems like Zomato doesn't fully understand the quick commerce business or prioritize customer satisfaction. Disappointing experience.\n\n**Date of experience:** January 17, 2025\n\nUsefulShare\n\nJan 14, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Worst delivery app ..never trust ..rather don't eat ...other wise you will loose your money waiting for them ..and you will get a message in app that your order got delivered ..but no solution..**](https://www.trustpilot.com/reviews/6786acd8728012c24c031f4c)\n\nYou will never get food if you have ordered the through zomato ..may be they deliver genuinely but they cheat 30 percent of people throught world not delivering the order and messaging your order got delivered ..but u won't receive ..neither ur delivery boy receive ur call or the restaurant person .. and when u email to customer support they will write sorry for the inconveniences that your order didn't get delivered ..we cannot return or compensate your refund ..fraud and cheaters all over places ..some may get good but I don't know how people have reported for the fraud of this company .never order from this app..you will loose the trust and money ...\n\n**Date of experience:** January 12, 2025\n\nUsefulShare\n\nJan 1, 2025\n\n![Rated 5 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-5.svg)\n\n[**Aromas Cafe & Bistro on Waterfield…**](https://www.trustpilot.com/reviews/677512ac920333eb30a270ad)\n\nAromas Cafe & Bistro on Waterfield Road, Bandra, deserves a mention for the excellent quality of their food and outstanding service.\n\nThis is our third visit during our 10 day stay in Bandra and I can highly recommend this restaurant.\n\n**Date of experience:** January 01, 2025\n\nUsefulShare\n\nJan 1, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Order number \\#6479980450 i ordered a…**](https://www.trustpilot.com/reviews/67750cfc80c581925b2205e0)\n\nOrder number #6479980450 i ordered a chickybiriyani from salem RR.. and initialy it showed i will get the food in 34 minutes and in few minutes it was showing 59 minutes delayed.. so i was cancelling the order.. and the app clearly showed i will get my refund to my original payment method... Because the order was still in preparation mode. And the delevery partner also not assigned... The app showed i will get my refund so i cancelled the order.. after cancellation i didn't get the refund.. even explained what exactly happend to the customer support.. they refused to refund the money.. such a frauds and scammer bastards..\n\n**Date of experience:** January 01, 2025\n\nUsefulShare\n\nAdvertisement\n\nDec 23, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Horrible experience and unresponsive customer service**](https://www.trustpilot.com/reviews/676938412133b9ceb9a0bc2a)\n\nHorrible experience. Food received doesn’t match the food displayed. No food quality control is in place. Finally no customer representative is in place with generic responses generated via chat. I have lost trust in this app. Hate from an Indian.\n\n**Date of experience:** December 23, 2024\n\nUseful1Share\n\nDec 10, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Disappointed with Zomato's declining service!**](https://www.trustpilot.com/reviews/67582b381e3daeb05ab2c579)\n\nZomato’s service has been declining rapidly. Recently, I ordered 10 items but received only 8, and the issue was denied despite clear evidence. In another instance, the same delivery rider handled two of my orders but delivered only one. Despite sending proof, Zomato claimed their GPS tracking showed the delivery was completed, ignoring my concern entirely.\n\nCustomer support is highly unresponsive—emails are met with generic replies, and there’s no way to escalate concerns via call. On top of that, stale food has been delivered multiple times, and refunds for such issues are never processed.\n\nThis poor service and lack of accountability have led to an extremely frustrating experience. @Zomato, please improve your service and address these concerns promptly!\n\n**Date of experience:** December 10, 2024\n\nUseful1Share\n\nNov 26, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**ZOMATO doesnt have quality restaurants, because zomato needs money finally customer is fools**](https://www.trustpilot.com/reviews/6746944c7738e5403bed66b3)\n\nReason why we should not order food in Zomato.\n\na) All the restaurants are not quality restaurants. if the customers order food in such kind of restaurant it's headache for the customer only.\n\nb) If you complaint the food is not delivered in time, Zomato will inform the customer we should not waste the food, but the reality is the restaurant have full load they will focus on the customer who is seated there and not for zomato,\n\nc) Zomato will inform the customer they will take stringent action on customer, Just ask the zomato what action you are taking copy your email to the customer, they will not do because zomato needs money and they will have well in advance.\n\nCUSTOMER :- PLEASE ORDER FOOD IN CASH ON DELIVERY CHECK THE QUALITY OF FOOD AND THEY PAY CASH\n\n**Date of experience:** November 05, 2024\n\nUseful1Share\n\n### Is this your company?\n\nClaim your profile to access Trustpilot’s free business tools and connect with customers.\n\n[Get free account](https://business.trustpilot.com/signup?locale=en-US&utm_medium=consumer&utm_source=claim_company_button&utm_campaign=consumer_cta&website=www.zomato.com&country=US)\n\n### The TrustpilotExperience\n\n#### We're open to all\n\n[Anyone](https://help.trustpilot.com/s/article/Who-can-write-a-review-and-when?language=en_US) can write a Trustpilot review. People who write reviews have ownership to edit or delete them at any time, and they’ll be displayed as long as an [account is active](https://help.trustpilot.com/s/article/Whats-the-retention-period-of-reviews?language=en_US).\n\n#### We champion verified reviews\n\nCompanies can ask for reviews via automatic invitations. Labeled Verified, they’re about genuine experiences.\n\n[Learn more](https://help.trustpilot.com/s/article/How-do-reviews-get-on-Trustpilot?utm_campaign=verified&utm_content=verified_tooltip&utm_medium=referral&utm_source=transparency_page&language=en_US) about other kinds of reviews.\n\n#### We fight fake reviews\n\nWe use dedicated people and clever technology to safeguard our platform. Find out how we [combat fake reviews](https://www.trustpilot.com/trust/combating-fake-reviews).\n\n#### We show the latest reviews\n\nLearn about Trustpilot’s [review process](https://help.trustpilot.com/s/article/The-journey-of-reviews-on-Trustpilot?language=en_US).\n\n#### We encourage constructive feedback\n\nHere are [8 tips for writing great reviews](https://help.trustpilot.com/s/article/8-tips-for-writing-great-customer-reviews?language=en_US).\n\n#### We verify reviewers\n\nVerification can help ensure [real people](https://help.trustpilot.com/s/article/Verify-your-identity-with-photo-ID?language=en_US) are writing the reviews you read on Trustpilot.\n\n#### We advocate against bias\n\nOffering incentives for reviews or asking for them selectively can bias the TrustScore, which goes [against our guidelines](https://help.trustpilot.com/s/article/Who-can-write-a-review-and-when?language=en_US).\n\n[Take a closer look](https://www.trustpilot.com/trust)\n\n[are you human?](https://www.trustpilot.com/end-of-the-line)\n\n[iframe](https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6Lcxp2UaAAAAABkIC5izuDmTEeXYfgfaoQ9v69Q4&co=aHR0cHM6Ly93d3cudHJ1c3RwaWxvdC5jb206NDQz&hl=en&v=hbAq-YhJxOnlU-7cpgBoAJHb&size=invisible&cb=i4o27n5q4mlg)",
+            "metadata": {
+              "theme-color": "#1c1c1c",
+              "og:description": "Do you agree with Zomato's TrustScore? Voice your opinion today and hear what 862 customers have already said.",
+              "og:title": "Zomato is rated \"Bad\" with 1.2 / 5 on Trustpilot",
+              "ogSiteName": "Trustpilot",
+              "description": "Join the 862 people who've already reviewed Zomato. Your experience can help others make better choices.",
+              "twitter:title": "Zomato is rated \"Bad\" with 1.2 / 5 on Trustpilot",
+              "next-head-count": "60",
+              "twitter:image": "https://share.trustpilot.com/images/company-rating?locale=en-US&businessUnitId=4e35c7190000640005108e27",
+              "application-name": "Trustpilot",
+              "favicon": "https://cdn.trustpilot.net/brand-assets/4.3.0/favicons/favicon-32x32.png",
+              "og:type": "trustpilot:company",
+              "ogUrl": "https://www.trustpilot.com/review/www.zomato.com",
+              "title": "Zomato Reviews | Read Customer Service Reviews of www.zomato.com",
+              "ogDescription": "Do you agree with Zomato's TrustScore? Voice your opinion today and hear what 862 customers have already said.",
+              "apple-itunes-app": "app-id=1608392803, app-argument=https://www.trustpilot.com/review/www.zomato.com",
+              "twitter:site": "@Trustpilot",
+              "twitter:description": "Do you agree with Zomato's TrustScore? Voice your opinion today and hear what 862 customers have already said.",
+              "og:image": "https://share.trustpilot.com/images/company-rating?locale=en-US&businessUnitId=4e35c7190000640005108e27&preset=consumersite",
+              "og:image:height": "1080",
+              "ogLocale": "en_US",
+              "twitter:card": "summary_large_image",
+              "ogImage": "https://share.trustpilot.com/images/company-rating?locale=en-US&businessUnitId=4e35c7190000640005108e27&preset=consumersite",
+              "og:site_name": "Trustpilot",
+              "og:locale": "en_US",
+              "og:image:width": "1080",
+              "viewport": [
+                "width=device-width, initial-scale=1",
+                "width=device-width, initial-scale=1"
+              ],
+              "robots": "max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+              "fb:app_id": "65206056824",
+              "ogTitle": "Zomato is rated \"Bad\" with 1.2 / 5 on Trustpilot",
+              "msapplication-TileColor": "#1c1c1c",
+              "og:url": "https://www.trustpilot.com/review/www.zomato.com",
+              "apple-mobile-web-app-title": "Trustpilot",
+              "language": "en-US",
+              "scrapeId": "260eb211-49be-4a79-8b10-48f9ec42406a",
+              "sourceURL": "https://www.trustpilot.com/review/zomato.com/",
+              "url": "https://www.trustpilot.com/review/www.zomato.com",
+              "statusCode": 200
+            }
+          }
+        }
+      }
+    ],
+    "Edit Fields": [
+      {
+        "json": {
+          "data": {
+            "metadata": {
+              "ogTitle": "[![Zomato logo](https://consumersiteimages.trustpilot.net/business-units/4e35c7190000640005108e27-198x149-1x.jpg)](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=logo_click)\n\n[Visit website](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\nUnclaimed profile\n\n# ZomatoReviews862\n\n•\n\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n1.2\n\n[Restaurant](https://www.trustpilot.com/categories/restaurant)\n\n[Write a review](https://www.trustpilot.com/evaluate/www.zomato.com) [Visit website](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\n[Write a review](https://www.trustpilot.com/evaluate/www.zomato.com)\n\n![](https://businessunitprofile-cdn.trustpilot.net/businessunitprofile-consumersite/public/trustpilot-shield.svg)\n\nCompanies on Trustpilot can’t offer incentives or pay to hide any reviews.\n\n## See what reviewers are saying\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nThe worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launchSee more\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nOrder ID 6764294552.\n\nItem ordered from \" Kakeda hotel\" cybercity , Gurugram. I paid Rs 423 by paytm.\n\nFood from sonewehere else( no name on\n\nPacking) was delivered to my address by delivery partner Gholam Mustafa yesterday evening.\n\nThis is cheating and fraud. Because this is not from the hotel from whuch I ordered.\n\nPlease collect the items from my address and refund the money Rs 423/\\_ back to me asap please. Thanks\n\n1)There is no name of kake da hotel anywhere on this ordinary packaging. Where was this purchased..??\n\n2) I ORDERED FROM KaKE DA HOTEL CYBERCITY gurgaon. THERE IS NO NAME ON PACKAGING.\n\nIt is not the item that I ordered. Because I ordered from Kake da hotel, Cybercity Gurgaon..\n\nThis is not bought from Kake da hotel. Where is the bill of kake da hotel ??\n\nThere is no bill of kake da hotel and no Packaging of \" kake da hotel\".\n\nBUNCH OF CHEATS. THIS ZOMATO\n\nI EMAILED TWICE. THERE IS NO REPLY.\n\nSee more\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\nOrdered 2 set meals and only 1 was delivered. Submitted all the proof of items sent and details of my order and they refused to proceed with refund claiming that the restaurant sent the correct order.\n\nTold them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.See more\n\n![Rated 2 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.svg)\n\nin my area there's alot of problems i am facing.there are like price issues. the area i am located in there are operational issues. and many more.\n\nthey are not punctual and even their offers are not appropriate. it's my request to zomato to not take jammu lightly.See more\n\nSee all 862 reviews\n\n* * *\n\n## Company details\n\n1. [Restaurant](https://www.trustpilot.com/categories/restaurant)\n\n#### Information provided by various external sources\n\nFoodiebay - Food Guide and Restaurant Directory with Review and Rating for 7000 Restaurants in Delhi, Gurgaon, Noida, Mumbai, Bangalore, Pune and Kolkata Restaurants\n\n* * *\n\n## Contact info\n\n- [www.zomato.com](http://www.zomato.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click)\n\n1.2\n\n#### Bad\n\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n862 reviews\n\n5-star\n\n4-star\n\n3-star\n\n2-star\n\n1-star\n\n[How this company uses Trustpilot](https://www.trustpilot.com/review/www.zomato.com/transparency)\n\n## People also looked at\n\n[![Swiggy logo](https://consumersiteimages.trustpilot.net/business-units/5c03a61ad3d896000100cc5f-198x149-1x.jpg)\\\\\n\\\\\n**Swiggy** \\\\\nswiggy.com\\\\\n\\\\\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\\\\\n\\\\\n1.2\\\\\n\\\\\n(755)](https://www.trustpilot.com/review/swiggy.com)\n\n[**Zomato** \\\\\nzomato.in\\\\\n\\\\\n![TrustScore 2.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.5.svg)\\\\\n\\\\\n2.7\\\\\n\\\\\n(35)](https://www.trustpilot.com/review/zomato.in)\n\n[![McDonald’s logo](https://consumersiteimages.trustpilot.net/business-units/4be2cac100006400050859c1-198x149-1x.jpg)\\\\\n\\\\\n**McDonald’s** \\\\\nwww.macdonalds.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.6\\\\\n\\\\\n(2K)](https://www.trustpilot.com/review/www.macdonalds.com)\n\n[![Flipkart logo](https://consumersiteimages.trustpilot.net/business-units/4bdc080f0000640005057d24-198x149-1x.jpg)\\\\\n\\\\\n**Flipkart** \\\\\nwww.flipkart.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.5\\\\\n\\\\\n(2K)](https://www.trustpilot.com/review/www.flipkart.com)\n\n[![Amazon logo](https://consumersiteimages.trustpilot.net/business-units/46ad346800006400050092d0-198x149-1x.jpg)\\\\\n\\\\\n**Amazon** \\\\\nwww.amazon.com\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.6\\\\\n\\\\\n(38K)](https://www.trustpilot.com/review/www.amazon.com)\n\n[**Amazon.in** \\\\\namazon.in\\\\\n\\\\\n![TrustScore 1.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.5.svg)\\\\\n\\\\\n1.3\\\\\n\\\\\n(523)](https://www.trustpilot.com/review/amazon.in)\n\n[**Zomato** \\\\\nzomato.ae\\\\\n\\\\\n![TrustScore 2.5 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.5.svg)\\\\\n\\\\\n2.3\\\\\n\\\\\n(6)](https://www.trustpilot.com/review/zomato.ae)\n\n[![Makemytrip logo](https://consumersiteimages.trustpilot.net/business-units/4bded848000064000506c48d-198x149-1x.jpg)\\\\\n\\\\\n**Makemytrip** \\\\\nwww.makemytrip.com\\\\\n\\\\\n![TrustScore 1 out of 5](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\\\\\n\\\\\n1.2\\\\\n\\\\\n(1K)](https://www.trustpilot.com/review/www.makemytrip.com)\n\nMore filters\n\nMost recent\n\n* * *\n\n4 days ago\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**The worst ever application in the world…**](https://www.trustpilot.com/reviews/67fa3f8d447c5b157ecc2ff3)\n\nThe worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launch\n\n**Date of experience:** April 12, 2025\n\nUsefulShare\n\nAdvertisement\n\nApr 8, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Order ID 6764294552.**](https://www.trustpilot.com/reviews/67f4ffef5d2a6c7b34974403)\n\nOrder ID 6764294552.\n\nItem ordered from \" Kakeda hotel\" cybercity , Gurugram. I paid Rs 423 by paytm.\n\nFood from sonewehere else( no name on\n\nPacking) was delivered to my address by delivery partner Gholam Mustafa yesterday evening.\n\nThis is cheating and fraud. Because this is not from the hotel from whuch I ordered.\n\nPlease collect the items from my address and refund the money Rs 423/\\_ back to me asap please. Thanks\n\n1)There is no name of kake da hotel anywhere on this ordinary packaging. Where was this purchased..??\n\n2) I ORDERED FROM KaKE DA HOTEL CYBERCITY gurgaon. THERE IS NO NAME ON PACKAGING.\n\nIt is not the item that I ordered. Because I ordered from Kake da hotel, Cybercity Gurgaon..\n\nThis is not bought from Kake da hotel. Where is the bill of kake da hotel ??\n\nThere is no bill of kake da hotel and no Packaging of \" kake da hotel\".\n\nBUNCH OF CHEATS. THIS ZOMATO\n\nI EMAILED TWICE. THERE IS NO REPLY.\n\n**Date of experience:** April 07, 2025\n\nUsefulShare\n\nMar 18, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Refused to do refund even with sufficient proof**](https://www.trustpilot.com/reviews/67d9333cbab7a01de322f29c)\n\nOrdered 2 set meals and only 1 was delivered. Submitted all the proof of items sent and details of my order and they refused to proceed with refund claiming that the restaurant sent the correct order.\n\nTold them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.\n\n**Date of experience:** March 13, 2025\n\nUsefulShare\n\nMar 15, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I canceled My order but stilli didn't…**](https://www.trustpilot.com/reviews/67d5749ef49274410ed928c5)\n\nI canceled My order but stilli didn't receive my amount they are not giving response also how ever they are expert to rob\n\n**Date of experience:** March 15, 2025\n\nUsefulShare\n\nMar 14, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Non-existent customer service**](https://www.trustpilot.com/reviews/67d4171c71676777ce534395)\n\nHorrible customer service. Couldn't get in touch with them at all, regarding horrible food quality from one of their restaurants. It's safer not to use this platform.\n\n**Date of experience:** March 13, 2025\n\nUsefulShare\n\nAdvertisement\n\nMar 11, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I placed an order on the 5 th March…**](https://www.trustpilot.com/reviews/67d0ee9a940e2b2464a19d1d)\n\nI placed an order on the 5 th March 2025 for food items which got cancelled and Zomato said they will refund the money paid immediately. It's nearly 7 days now , I am yet to receive my money back . It's an untrustworthy company. Please be careful with this fraudulent company!\n\n**Date of experience:** March 05, 2025\n\nUseful1Share\n\nMar 10, 2025\n\n![Rated 2 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-2.svg)\n\n[**in my area there's alot of problems i…**](https://www.trustpilot.com/reviews/67ceff860ff38d82225fcfc9)\n\nin my area there's alot of problems i am facing.there are like price issues. the area i am located in there are operational issues. and many more.\n\nthey are not punctual and even their offers are not appropriate. it's my request to zomato to not take jammu lightly.\n\n**Date of experience:** March 08, 2025\n\nUsefulShare\n\nMar 8, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Thief’s**](https://www.trustpilot.com/reviews/67cc74d47e1762f471d3ecc7)\n\nThief’s, highly unprofessional, worst attitude creatures, a big sham on food industry.\n\n**Date of experience:** March 08, 2025\n\nUseful1Share\n\nMar 2, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Pathetic service-**](https://www.trustpilot.com/reviews/67c55fc7b610fe6d160a5595)\n\nPathetic service- absolutely dissatisfied\n\n**Date of experience:** January 09, 2025\n\nUsefulShare\n\nAdvertisement\n\nMar 1, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**This is useless reply that customer…**](https://www.trustpilot.com/reviews/67c386cae85ad0cc9bf075c9)\n\nThis is useless reply that customer dint pick the call so the delivery partner canceled the order by himself that too prepaid order and after complaining no refund and no product delivery was made\n\nFraud zomato fraud delivey partner and executive ms veena depak kumar delivey boy fraud the action need to ne taken\n\n**Date of experience:** February 28, 2025\n\nUsefulShare\n\nSee if a website is trustworthy without leaving the page\n\n![](https://cdn.trustpilot.net/brand-assets/4.3.0/logo-black.svg)\n\n[Get Chrome extension](https://chrome.google.com/webstore/detail/trustpilot-reviews-rating/dimkjjladgaekdlfebknbaooicmfalke?utm_source=trustpilot&utm_medium=cpp_promotion&utm_campaign=cpp_promotion)\n\nFeb 18, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Nanjangud a town (taluka) has many veg…**](https://www.trustpilot.com/reviews/67b43ed87b443689bd47bdbe)\n\nNanjangud a town (taluka) has many veg restaurants, but this cheap company shows no veg restaurant at 1330 in the afternoon\n\nVer poor service and bad mannered staff\n\n**Date of experience:** February 18, 2025\n\nUsefulShare\n\nFeb 11, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Scam Alert!**](https://www.trustpilot.com/reviews/67ab3b6b6723705e91755fdc)\n\nScam Alert!\n\nI am appalled by the actions of Zomato, which have led to fraudulent practices and poor customer service. After placing an online order and paying ₹349.50, I attempted to edit my delivery instructions, at which point my order was automatically canceled. Despite this, Zomato proceeded to deduct ₹349.50 from my account, and refused to issue a refund when I raised the issue.\n\nThis is outrageous and an unacceptable way to treat customers. Zomato has shown no accountability for their error, and their refusal to resolve the situation makes it clear that they care more about profits than customer satisfaction.\n\nI am sharing this with the public to warn others of the dishonest and unprofessional practices I’ve encountered. I will not stand by while companies like Zomato take money from customers without delivering the promised service. I urge others to be cautious when using this platform and consider the risk of losing your money without any support or resolution from the company.\n\n**Date of experience:** February 10, 2025\n\nUsefulShare\n\nFeb 5, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Zomato Gold or Zomato Cold?**](https://www.trustpilot.com/reviews/67a3c3aa7c7f31edd02b9cdf)\n\nZomato Gold or Zomato Cold?\n\nWow, just wow. I must say, Zomato has truly mastered the art of testing human patience. If there was an award for “Slowest Food Delivery That Doubles as a Social Experiment on Hunger Management,” you guys would sweep the competition.\n\nLet’s talk about today’s record-breaking disaster—the restaurant is 5 minutes away. Not 50, not 15. FIVE. A normal person could’ve walked there, had a meal, tipped the waiter, and strolled back before my food even left the kitchen. But not with Zomato! No, no, no. Here, we embark on a journey. My delivery partner, instead of heading towards me, took a scenic route in the OPPOSITE direction. Maybe he was sightseeing? Maybe he needed a spiritual awakening before delivering my biryani? Who knows!\n\nNaturally, I contacted customer care. “Don’t worry, your order will be on time,” they said. On time for what? My funeral? Because that’s the only logical explanation at this point. An hour later, I call again, and now I get the real plot twist—apparently, the delivery guy’s phone is damaged, so he can’t accept orders. Ah, brilliant. So, instead of fixing the issue an hour ago, they waited for me to starve and then ask if they should reassign it. You tell me, Zomato—what was your backup plan? Manifest the food through sheer willpower? Hope I forget I ordered?\n\nAt this point, I have to ask—is this a food delivery app or an elaborate psychological thriller? Because I swear, even Christopher Nolan couldn’t write a more confusing timeline than my food’s journey.\n\nBut wait, the best part? Right before checkout, Zomato sweetly asks if I’d like to donate to \"Feed India.\" Oh, the irony! I AM the one in need of food right now! Maybe I should start a donation campaign for myself—\"Feed the Hungry Customer Waiting on Zomato.\" Imagine donating money to feed strangers when your own food is stuck in some parallel dimension. The audacity.\n\nAnd just when I thought it couldn’t get worse… The new delivery guy isn’t even moving. It’s been 20 minutes, and this man is sitting like he’s meditating on my food, contemplating life choices. Customer care had the nerve to tell me I’d get my food in 15-20 minutes. Guess what? They’ve now graciously offered me an option to cancel my order. Ah, yes, because waiting over an hour just to be told, “Do you even want the food anymore?” is exactly the five-star experience I was looking for.\n\nSo what’s next, Zomato? Are you going to ask me if I want to cook it myself? Or will you launch a new feature where I pay extra for the privilege of actually receiving my order?\n\nZomato, I bow down to your groundbreaking levels of incompetence. Maybe next time, I’ll just light my money on fire—it’ll be quicker and probably more satisfying. Do better. Or don’t. Either way, I’m ordering from Swiggy.\n\n**Date of experience:** February 06, 2025\n\nUsefulShare\n\nAdvertisement\n\nJan 17, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**I've noticed consistent delays in…**](https://www.trustpilot.com/reviews/678a77b7997dac9b5e888fa7)\n\nI've noticed consistent delays in Zomato's delivery service lately. Despite paying a premium for quick delivery, the service often falls short. If delays become the norm, it defeats the purpose of using Zomato. It seems like Zomato doesn't fully understand the quick commerce business or prioritize customer satisfaction. Disappointing experience.\n\n**Date of experience:** January 17, 2025\n\nUsefulShare\n\nJan 14, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Worst delivery app ..never trust ..rather don't eat ...other wise you will loose your money waiting for them ..and you will get a message in app that your order got delivered ..but no solution..**](https://www.trustpilot.com/reviews/6786acd8728012c24c031f4c)\n\nYou will never get food if you have ordered the through zomato ..may be they deliver genuinely but they cheat 30 percent of people throught world not delivering the order and messaging your order got delivered ..but u won't receive ..neither ur delivery boy receive ur call or the restaurant person .. and when u email to customer support they will write sorry for the inconveniences that your order didn't get delivered ..we cannot return or compensate your refund ..fraud and cheaters all over places ..some may get good but I don't know how people have reported for the fraud of this company .never order from this app..you will loose the trust and money ...\n\n**Date of experience:** January 12, 2025\n\nUsefulShare\n\nJan 1, 2025\n\n![Rated 5 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-5.svg)\n\n[**Aromas Cafe & Bistro on Waterfield…**](https://www.trustpilot.com/reviews/677512ac920333eb30a270ad)\n\nAromas Cafe & Bistro on Waterfield Road, Bandra, deserves a mention for the excellent quality of their food and outstanding service.\n\nThis is our third visit during our 10 day stay in Bandra and I can highly recommend this restaurant.\n\n**Date of experience:** January 01, 2025\n\nUsefulShare\n\nJan 1, 2025\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Order number \\#6479980450 i ordered a…**](https://www.trustpilot.com/reviews/67750cfc80c581925b2205e0)\n\nOrder number #6479980450 i ordered a chickybiriyani from salem RR.. and initialy it showed i will get the food in 34 minutes and in few minutes it was showing 59 minutes delayed.. so i was cancelling the order.. and the app clearly showed i will get my refund to my original payment method... Because the order was still in preparation mode. And the delevery partner also not assigned... The app showed i will get my refund so i cancelled the order.. after cancellation i didn't get the refund.. even explained what exactly happend to the customer support.. they refused to refund the money.. such a frauds and scammer bastards..\n\n**Date of experience:** January 01, 2025\n\nUsefulShare\n\nAdvertisement\n\nDec 23, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Horrible experience and unresponsive customer service**](https://www.trustpilot.com/reviews/676938412133b9ceb9a0bc2a)\n\nHorrible experience. Food received doesn’t match the food displayed. No food quality control is in place. Finally no customer representative is in place with generic responses generated via chat. I have lost trust in this app. Hate from an Indian.\n\n**Date of experience:** December 23, 2024\n\nUseful1Share\n\nDec 10, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**Disappointed with Zomato's declining service!**](https://www.trustpilot.com/reviews/67582b381e3daeb05ab2c579)\n\nZomato’s service has been declining rapidly. Recently, I ordered 10 items but received only 8, and the issue was denied despite clear evidence. In another instance, the same delivery rider handled two of my orders but delivered only one. Despite sending proof, Zomato claimed their GPS tracking showed the delivery was completed, ignoring my concern entirely.\n\nCustomer support is highly unresponsive—emails are met with generic replies, and there’s no way to escalate concerns via call. On top of that, stale food has been delivered multiple times, and refunds for such issues are never processed.\n\nThis poor service and lack of accountability have led to an extremely frustrating experience. @Zomato, please improve your service and address these concerns promptly!\n\n**Date of experience:** December 10, 2024\n\nUseful1Share\n\nNov 26, 2024\n\n![Rated 1 out of 5 stars](https://cdn.trustpilot.net/brand-assets/4.1.0/stars/stars-1.svg)\n\n[**ZOMATO doesnt have quality restaurants, because zomato needs money finally customer is fools**](https://www.trustpilot.com/reviews/6746944c7738e5403bed66b3)\n\nReason why we should not order food in Zomato.\n\na) All the restaurants are not quality restaurants. if the customers order food in such kind of restaurant it's headache for the customer only.\n\nb) If you complaint the food is not delivered in time, Zomato will inform the customer we should not waste the food, but the reality is the restaurant have full load they will focus on the customer who is seated there and not for zomato,\n\nc) Zomato will inform the customer they will take stringent action on customer, Just ask the zomato what action you are taking copy your email to the customer, they will not do because zomato needs money and they will have well in advance.\n\nCUSTOMER :- PLEASE ORDER FOOD IN CASH ON DELIVERY CHECK THE QUALITY OF FOOD AND THEY PAY CASH\n\n**Date of experience:** November 05, 2024\n\nUseful1Share\n\n### Is this your company?\n\nClaim your profile to access Trustpilot’s free business tools and connect with customers.\n\n[Get free account](https://business.trustpilot.com/signup?locale=en-US&utm_medium=consumer&utm_source=claim_company_button&utm_campaign=consumer_cta&website=www.zomato.com&country=US)\n\n### The TrustpilotExperience\n\n#### We're open to all\n\n[Anyone](https://help.trustpilot.com/s/article/Who-can-write-a-review-and-when?language=en_US) can write a Trustpilot review. People who write reviews have ownership to edit or delete them at any time, and they’ll be displayed as long as an [account is active](https://help.trustpilot.com/s/article/Whats-the-retention-period-of-reviews?language=en_US).\n\n#### We champion verified reviews\n\nCompanies can ask for reviews via automatic invitations. Labeled Verified, they’re about genuine experiences.\n\n[Learn more](https://help.trustpilot.com/s/article/How-do-reviews-get-on-Trustpilot?utm_campaign=verified&utm_content=verified_tooltip&utm_medium=referral&utm_source=transparency_page&language=en_US) about other kinds of reviews.\n\n#### We fight fake reviews\n\nWe use dedicated people and clever technology to safeguard our platform. Find out how we [combat fake reviews](https://www.trustpilot.com/trust/combating-fake-reviews).\n\n#### We show the latest reviews\n\nLearn about Trustpilot’s [review process](https://help.trustpilot.com/s/article/The-journey-of-reviews-on-Trustpilot?language=en_US).\n\n#### We encourage constructive feedback\n\nHere are [8 tips for writing great reviews](https://help.trustpilot.com/s/article/8-tips-for-writing-great-customer-reviews?language=en_US).\n\n#### We verify reviewers\n\nVerification can help ensure [real people](https://help.trustpilot.com/s/article/Verify-your-identity-with-photo-ID?language=en_US) are writing the reviews you read on Trustpilot.\n\n#### We advocate against bias\n\nOffering incentives for reviews or asking for them selectively can bias the TrustScore, which goes [against our guidelines](https://help.trustpilot.com/s/article/Who-can-write-a-review-and-when?language=en_US).\n\n[Take a closer look](https://www.trustpilot.com/trust)\n\n[are you human?](https://www.trustpilot.com/end-of-the-line)\n\n[iframe](https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6Lcxp2UaAAAAABkIC5izuDmTEeXYfgfaoQ9v69Q4&co=aHR0cHM6Ly93d3cudHJ1c3RwaWxvdC5jb206NDQz&hl=en&v=hbAq-YhJxOnlU-7cpgBoAJHb&size=invisible&cb=i4o27n5q4mlg)"
+            }
+          }
+        }
+      }
+    ],
+    "Code": [
+      {
+        "json": {
+          "company": "Zomato",
+          "total_reviews": "862",
+          "trust_score": "1",
+          "reviews": [
+            {
+              "rating": "1",
+              "title": "No title",
+              "content": "The worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launchSee more",
+              "experience_date": ""
+            },
+            {
+              "rating": "1",
+              "title": "No title",
+              "content": "See more",
+              "experience_date": ""
+            },
+            {
+              "rating": "1",
+              "title": "No title",
+              "content": "Told them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.See more",
+              "experience_date": ""
+            },
+            {
+              "rating": "2",
+              "title": "Swiggy",
+              "content": "4 days ago",
+              "experience_date": ""
+            },
+            {
+              "rating": "1",
+              "title": "The worst ever application in the world…",
+              "content": "The worst ever application in the world is zomato . Shame on you people to introduce such a thing. The first class fraud and scam they r, moreover they have the worst customer service and application launch",
+              "experience_date": "April 12, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Order ID 6764294552.",
+              "content": "I EMAILED TWICE. THERE IS NO REPLY.",
+              "experience_date": "April 07, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Refused to do refund even with sufficient proof",
+              "content": "Told them to check my proof again and refund that one item and they only copy paste the same reply that they \"regret the situation but can't proceed with refund\". Extremely unprofessional.",
+              "experience_date": "March 13, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "I canceled My order but stilli didn't…",
+              "content": "I canceled My order but stilli didn't receive my amount they are not giving response also how ever they are expert to rob",
+              "experience_date": "March 15, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Non-existent customer service",
+              "content": "Horrible customer service. Couldn't get in touch with them at all, regarding horrible food quality from one of their restaurants. It's safer not to use this platform.",
+              "experience_date": "March 13, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "I placed an order on the 5 th March…",
+              "content": "I placed an order on the 5 th March 2025 for food items which got cancelled and Zomato said they will refund the money paid immediately. It's nearly 7 days now , I am yet to receive my money back . It's an untrustworthy company. Please be careful with this fraudulent company!",
+              "experience_date": "March 05, 2025"
+            },
+            {
+              "rating": "2",
+              "title": "in my area there's alot of problems i…",
+              "content": "they are not punctual and even their offers are not appropriate. it's my request to zomato to not take jammu lightly.",
+              "experience_date": "March 08, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Thief’s",
+              "content": "Thief’s, highly unprofessional, worst attitude creatures, a big sham on food industry.",
+              "experience_date": "March 08, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Pathetic service-",
+              "content": "Pathetic service- absolutely dissatisfied",
+              "experience_date": "January 09, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "This is useless reply that customer…",
+              "content": "Fraud zomato fraud delivey partner and executive ms veena depak kumar delivey boy fraud the action need to ne taken",
+              "experience_date": "February 28, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Nanjangud a town (taluka) has many veg…",
+              "content": "Ver poor service and bad mannered staff",
+              "experience_date": "February 18, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Scam Alert!",
+              "content": "I am sharing this with the public to warn others of the dishonest and unprofessional practices I’ve encountered. I will not stand by while companies like Zomato take money from customers without delivering the promised service. I urge others to be cautious when using this platform and consider the risk of losing your money without any support or resolution from the company.",
+              "experience_date": "February 10, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Zomato Gold or Zomato Cold?",
+              "content": "Zomato, I bow down to your groundbreaking levels of incompetence. Maybe next time, I’ll just light my money on fire—it’ll be quicker and probably more satisfying. Do better. Or don’t. Either way, I’m ordering from Swiggy.",
+              "experience_date": "February 06, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "I've noticed consistent delays in…",
+              "content": "I've noticed consistent delays in Zomato's delivery service lately. Despite paying a premium for quick delivery, the service often falls short. If delays become the norm, it defeats the purpose of using Zomato. It seems like Zomato doesn't fully understand the quick commerce business or prioritize customer satisfaction. Disappointing experience.",
+              "experience_date": "January 17, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Worst delivery app ..never trust ..rather don't eat ...other wise you will loose your money waiting for them ..and you will get a message in app that your order got delivered ..but no solution..",
+              "content": "You will never get food if you have ordered the through zomato ..may be they deliver genuinely but they cheat 30 percent of people throught world not delivering the order and messaging your order got delivered ..but u won't receive ..neither ur delivery boy receive ur call or the restaurant person .. and when u email to customer support they will write sorry for the inconveniences that your order didn't get delivered ..we cannot return or compensate your refund ..fraud and cheaters all over places ..some may get good but I don't know how people have reported for the fraud of this company .never order from this app..you will loose the trust and money ...",
+              "experience_date": "January 12, 2025"
+            },
+            {
+              "rating": "5",
+              "title": "Aromas Cafe & Bistro on Waterfield…",
+              "content": "This is our third visit during our 10 day stay in Bandra and I can highly recommend this restaurant.",
+              "experience_date": "January 01, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Order number \\#6479980450 i ordered a…",
+              "content": "Order number #6479980450 i ordered a chickybiriyani from salem RR.. and initialy it showed i will get the food in 34 minutes and in few minutes it was showing 59 minutes delayed.. so i was cancelling the order.. and the app clearly showed i will get my refund to my original payment method... Because the order was still in preparation mode. And the delevery partner also not assigned... The app showed i will get my refund so i cancelled the order.. after cancellation i didn't get the refund.. even explained what exactly happend to the customer support.. they refused to refund the money.. such a frauds and scammer bastards..",
+              "experience_date": "January 01, 2025"
+            },
+            {
+              "rating": "1",
+              "title": "Horrible experience and unresponsive customer service",
+              "content": "Horrible experience. Food received doesn’t match the food displayed. No food quality control is in place. Finally no customer representative is in place with generic responses generated via chat. I have lost trust in this app. Hate from an Indian.",
+              "experience_date": "December 23, 2024"
+            },
+            {
+              "rating": "1",
+              "title": "Disappointed with Zomato's declining service!",
+              "content": "This poor service and lack of accountability have led to an extremely frustrating experience. @Zomato, please improve your service and address these concerns promptly!",
+              "experience_date": "December 10, 2024"
+            },
+            {
+              "rating": "1",
+              "title": "ZOMATO doesnt have quality restaurants, because zomato needs money finally customer is fools",
+              "content": "CUSTOMER :- PLEASE ORDER FOOD IN CASH ON DELIVERY CHECK THE QUALITY OF FOOD AND THEY PAY CASH",
+              "experience_date": "November 05, 2024"
+            }
+          ]
+        }
+      }
+    ],
+    "Trustpilot Review Analyser": [
+      {
+        "json": {
+          "text": "# Zomato - Customer Review Summary\n\n## Overall Company Feedback:\nThe general sentiment towards Zomato is extremely negative, with a TrustScore of 1.2 out of 5, based on 862 reviews. Customers consistently express frustration and disappointment with the service, citing issues related to poor delivery, unresponsive customer support, and fraudulent practices. While some reviews mention positive experiences with specific restaurants, the overwhelming majority highlight a lack of reliability and repeated problems with order accuracy and refunds.\n\n## Product Sentiment Analysis:\n- **Food Delivery Service:** Negative sentiment - Numerous complaints focus on incorrect orders, missing items, and long delivery times. Many customers describe their experiences as frustrating and unprofessional.\n- **Customer Service:** Negative sentiment - A significant number of reviews discuss the lack of response from customer service, with users describing it as non-existent or generic and unhelpful.\n- **Refund Process:** Negative sentiment - Customers have reported difficulties in obtaining refunds for canceled orders or missing items, leading to accusations of fraud and untrustworthiness.\n\n## Key Improvement Areas:\n1. **Enhance Customer Support:** Improve the responsiveness and effectiveness of customer service to address issues more efficiently, possibly by introducing a better escalation process for complaints.\n2. **Delivery Accuracy and Timeliness:** Focus on ensuring that orders are delivered correctly and in a timely manner to restore trust in the delivery service.\n3. **Transparency in Communication:** Provide clearer communication regarding order statuses, refund processes, and company policies to instill confidence in customers regarding their transactions."
+        }
+      }
+    ],
+    "HTTP Request": [
+      {
+        "json": {
+          "data": "Title: Zomato - India’s #1 Food delivery app\n\nURL Source: http://zomato.com/\n\nMarkdown Content:\n![Image 1](https://b.zmtcdn.com/images/square_zomato_logo_new.svg)\n\nOnline ordering and  \nmuch more on the app\n\n![Image 2: Zomato logo (loading)](blob:http://localhost/b9a31d3949b1882a09ed2f8508d538f3)\n\n![Image 3: Zomato logo](https://b.zmtcdn.com/data/o2_assets/52c985ee025e442b74fb4c91cbe20ced1743099385.png)\n\n![Image 4: Zomato logo (loading)](https://b.zmtcdn.com/web/logo/low/6d289d7188aeb23d3c0c76b74915b9931587822718.png)\n\n![Image 5: Zomato logo](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\nExperience fast & easy online ordering on the Zomato app\n\nBetter food for more people\n\nFor over a decade, we’ve enabled our customers to discover new tastes, delivered right to their doorstep\n\n![Image 6](https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png)![Image 7](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 8](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 9](https://b.zmtcdn.com/data/o2_assets/364f85b5586700f0a3f7108cedf543011739962117.png)![Image 10](https://b.zmtcdn.com/data/o2_assets/3d1b3a891e2c59fd5ae7654dd207370b1739514134.png)![Image 11](https://b.zmtcdn.com/data/o2_assets/c7523de995639024918c6947c4b2cdcd1742894059.png)\n\n3,00,000+\n\nrestaurants\n\n![Image 12](https://b.zmtcdn.com/data/o2_assets/d19ec60986487a77bcb026e5efc3325f1742908200.png)\n\n800+\n\ncities\n\n![Image 13](https://b.zmtcdn.com/data/o2_assets/e7533c4081d6140da37b9f430cb7b8051743006192.png)\n\n3 billion+\n\norders delivered\n\n![Image 14](https://b.zmtcdn.com/data/o2_assets/713443cc5944ce4284d7e49e75e2aacf1742466222.png)\n\nWhat’s waiting for you\n\non the app?\n\nOur app is packed with features that enable you to experience food delivery like never before\n\n![Image 15](https://b.zmtcdn.com/data/o2_assets/82f145180cd6f920a8a8617dda366a0a1742455963.png)\n\nVeg Mode\n\n![Image 16](https://b.zmtcdn.com/data/o2_assets/d0f1639403f80f8f2c19e0d538222e661742455804.png)\n\nHealthy\n\n![Image 17](https://b.zmtcdn.com/data/o2_assets/541a9b65443d5d378e1b2d18319663f41742455727.png)\n\nHomely  \nmeals\n\n![Image 18](https://b.zmtcdn.com/data/o2_assets/85fa7a0c955ba0f8d894b6b68a27cdf81742978539.png)\n\nQuick  \ndelivery\n\n![Image 19](https://b.zmtcdn.com/data/o2_assets/5e7aab0f183b36fc12c29279f0cb55181742462245.png)\n\nPlan  \na Party\n\n![Image 20](https://b.zmtcdn.com/data/o2_assets/813952c961fd13588cb71867d84ea7dc1742455815.png)\n\nOffers\n\n![Image 21](https://b.zmtcdn.com/data/o2_assets/06d090307e02772693ac06123b53459b1742455939.png)\n\nFood on  \nTrain\n\n![Image 22](https://b.zmtcdn.com/data/o2_assets/6e27c9acde6045c272a28e6eb275727e1742455789.png)\n\nGourmet\n\n![Image 23](https://b.zmtcdn.com/data/o2_assets/867f86a10503998e437963bb37c451591742455764.png)\n\nGift Cards\n\n...and a lot more\n\n![Image 24](https://b.zmtcdn.com/data/o2_assets/6ecb2e1b4e412376645848c9c39098a81739521607.png)![Image 25](https://b.zmtcdn.com/data/o2_assets/eae1c0140168456506dca2736dc9b1c61742909660.png)![Image 26](https://b.zmtcdn.com/data/o2_assets/22c34e84a18aed26be7638c77e4e695b1742909865.png)![Image 27: zomato logo](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\n![Image 28: zomato logo](https://b.zmtcdn.com/data/o2_assets/fe0795a6c0061186abc4d9af9771ac751738564951.png)\n\nIndia’s Top Savings Program for Food Lovers\n\nGOLD BENEFITS\n\n![Image 29](https://b.zmtcdn.com/data/o2_assets/bc9d2a579285cbdaa101b8fe2ba68f601741779645.png)\n\nFree Delivery\n\nAt all restaurants within 7 km\n\n![Image 30](https://b.zmtcdn.com/data/o2_assets/d668ed26c7d4771318d0aa03b3f905e71741779899.png)\n\nUp to 30% extra off\n\nAt 20,000+ partner restaurants\n\n![Image 31: eternal logo](https://b.zmtcdn.com/data/o2_assets/81ed35564614cbdf5188bb72dc7e57b51739536377.png)\n\nPOWERING INDIA’S CHANGING LIFESTYLE\n\n![Image 32: district](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\n![Image 33: blinkit](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\n![Image 34: hyperpure](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\n![Image 35: zomato](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\n![Image 36: district](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\n![Image 37: blinkit](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\n![Image 38: hyperpure](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\n![Image 39: zomato](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\nhyperpure\n\nOffering complete supply chain solution for your restaurant\n\n[Check it out](https://hyperpure.app.link/0yVEsAZUl8)\n\n![Image 40: Eternal Watermark](https://b.zmtcdn.com/data/o2_assets/3010d6966150c5274ade97b8f24212961739536710.png)\n\n![Image 41: eternal logo](https://b.zmtcdn.com/data/o2_assets/e6b11be581b91b410684fa16287f565c1738647242.png)\n\nDownload the app now!\n\nExperience seamless food ordering  \nwith the Zomato app\n\n[![Image 42: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 43: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\n![Image 44: Zomato logo (loading)](blob:http://localhost/b9a31d3949b1882a09ed2f8508d538f3)\n\n![Image 45: Zomato logo](https://b.zmtcdn.com/data/o2_assets/52c985ee025e442b74fb4c91cbe20ced1743099385.png)\n\n![Image 46](https://b.zmtcdn.com/web_assets/8313a97515fcb0447d2d77c276532a511583262271.png)\n\nIndia’s #1  \nfood delivery app\n------------------------------\n\nExperience fast & easy online ordering on the Zomato app\n\n[![Image 47: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 48: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\nScroll down\n\n![Image 49](https://b.zmtcdn.com/data/o2_assets/901001826baf04838b1bf505176ff0b11742453501.png)\n\n![Image 50](https://b.zmtcdn.com/data/o2_assets/901001826baf04838b1bf505176ff0b11742453501.png)\n\nBetter food for more people\n\nFor over a decade, we’ve enabled our customers to discover new tastes, delivered right to their doorstep\n\n![Image 51](https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png)![Image 52](https://b.zmtcdn.com/data/o2_assets/b4f62434088b0ddfa9b370991f58ca601743060218.png)![Image 53](https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png)![Image 54](https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png)![Image 55](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)![Image 56](https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png)\n\n3,00,000+\n\nrestaurants\n\n![Image 57: menu icon](https://b.zmtcdn.com/data/o2_assets/d19ec60986487a77bcb026e5efc3325f1742908200.png)\n\n800+\n\ncities\n\n![Image 58: menu icon](https://b.zmtcdn.com/data/o2_assets/e7533c4081d6140da37b9f430cb7b8051743006192.png)\n\n3 billion+\n\norders delivered\n\n![Image 59: menu icon](https://b.zmtcdn.com/data/o2_assets/713443cc5944ce4284d7e49e75e2aacf1742466222.png)\n\nWhat’s waiting for you  \non the app?\n\nOur app is packed with features that enable you to experience food delivery like never before\n\n![Image 60](https://b.zmtcdn.com/data/o2_assets/d0f1639403f80f8f2c19e0d538222e661742455804.png)\n\nHealthy\n\n![Image 61](https://b.zmtcdn.com/data/o2_assets/82f145180cd6f920a8a8617dda366a0a1742455963.png)\n\nVeg Mode\n\n![Image 62](https://b.zmtcdn.com/data/o2_assets/5e7aab0f183b36fc12c29279f0cb55181742462245.png)\n\nPlan  \na Party\n\n![Image 63](https://b.zmtcdn.com/data/o2_assets/867f86a10503998e437963bb37c451591742455764.png)\n\nGift Cards\n\n![Image 64: mobile frame](https://b.zmtcdn.com/data/o2_assets/3f7e2757e62fd22592b879bd56b666011742294630.png)\n\n![Image 65](https://b.zmtcdn.com/data/o2_assets/85fa7a0c955ba0f8d894b6b68a27cdf81742978539.png)\n\nQuick  \ndelivery\n\n![Image 66](https://b.zmtcdn.com/data/o2_assets/6e27c9acde6045c272a28e6eb275727e1742455789.png)\n\nGourmet\n\n![Image 67](https://b.zmtcdn.com/data/o2_assets/813952c961fd13588cb71867d84ea7dc1742455815.png)\n\nOffers\n\n![Image 68](https://b.zmtcdn.com/data/o2_assets/06d090307e02772693ac06123b53459b1742455939.png)\n\nFood on  \nTrain\n\n![Image 69](https://b.zmtcdn.com/data/o2_assets/541a9b65443d5d378e1b2d18319663f41742455727.png)\n\nHomely  \nmeals\n\n![Image 70](https://b.zmtcdn.com/data/o2_assets/e7a502b732de9cd0d5ceca82306137ca1743059837.png)![Image 71](https://b.zmtcdn.com/data/o2_assets/ef5bc22bc703882ccb11a5b75ad6704b1743059783.png)![Image 72](https://b.zmtcdn.com/data/o2_assets/3658cc04dba86e5dfa2d99f070e1fc171743059861.png)\n\n![Image 73: Gold logo](https://b.zmtcdn.com/data/o2_assets/5f94743e20e3f668953fda8b0e56f2f71742996005.png)\n\nIndia’s Top Savings\n\nProgram for Food Lovers\n\nGOLD BENEFITS\n\n![Image 74](https://b.zmtcdn.com/data/o2_assets/bc9d2a579285cbdaa101b8fe2ba68f601741779645.png)\n\nFree Delivery\n\nAt all restaurants within 7 km\n\n![Image 75](https://b.zmtcdn.com/data/o2_assets/d668ed26c7d4771318d0aa03b3f905e71741779899.png)\n\nUp to 30% extra off\n\nAt 20,000+ partner restaurants\n\n![Image 76](https://b.zmtcdn.com/data/o2_assets/f64b00427de0a6858432f039ef9e03731739364398.png)\n\n![Image 77](https://b.zmtcdn.com/data/o2_assets/e80d61bfc77eb2ac157e9807ab021e7b1739365197.png)\n\n![Image 78: eternal logo](https://b.zmtcdn.com/data/o2_assets/81ed35564614cbdf5188bb72dc7e57b51739536377.png)\n\nPOWERING INDIA’S  \nCHANGING LIFESTYLES\n\n![Image 79](https://b.zmtcdn.com/data/o2_assets/d1eee2be61cf47e2332cb7c49475c0981739777714.png)\n\nzomato\n\nGet the app now to start ordering your favorite dishes!\n\n![Image 80](https://b.zmtcdn.com/data/o2_assets/071cb96db84f20eea3a39804e113bdee1739777655.png)\n\nblinkit\n\nChoose from 10,000+ products & get them delivered in minutes\n\n![Image 81](https://b.zmtcdn.com/data/o2_assets/38bf2d77d9391b8b1866e3ae2b5fe19a1739777683.png)\n\ndistrict\n\nThe best of events, movies, dining, and everything you love!\n\n![Image 82](https://b.zmtcdn.com/data/o2_assets/9207cd0fc68c4ac55cfd3bfa00c02a351739777699.png)\n\nhyperpure\n\nOffering complete supply chain solution for your restaurant\n\nDownload the app now!\n\nExperience seamless online ordering\n\nonly on the Zomato app\n\n[![Image 83: App Download Logo](https://b.zmtcdn.com/data/o2_assets/aad864bd17860b27634fe621001c32db1739350431.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)[![Image 84: App Download Logo](https://b.zmtcdn.com/data/o2_assets/df6464de32f4a09262cee301f65aaa661739351256.png)](https://zomato.onelink.me/xqzv/xsm2vxb4)\n\n![Image 85](https://b.zmtcdn.com/data/o2_assets/3f7e2757e62fd22592b879bd56b666011742294630.png)\n\nScan the QR code to download the app\n\n![Image 86: download zomato app](https://b.zmtcdn.com/data/o2_assets/98cc4eba0a6f59e728e5223a70fd39551742471514.png)\n"
+        }
+      }
+    ],
+    "Website Analysis": [
+      {
+        "json": {
+          "output": {
+            "company_basics": {
+              "name": "Zomato",
+              "industry": "Food Delivery",
+              "headquarters": null,
+              "founded": null,
+              "website": "http://zomato.com/"
+            },
+            "business_overview": {
+              "description": "Experience fast & easy online ordering on the Zomato app. For over a decade, we’ve enabled our customers to discover new tastes, delivered right to their doorstep.",
+              "mission_statement": null,
+              "key_offerings": [
+                "Online food delivery",
+                "Restaurant discovery"
+              ]
+            },
+            "products_and_services": {
+              "main_offerings": [
+                "Food delivery app"
+              ],
+              "key_features": [
+                "Veg Mode",
+                "Healthy options",
+                "Homely meals",
+                "Quick delivery",
+                "Party planning",
+                "Offers",
+                "Food on train",
+                "Gourmet options",
+                "Gift cards"
+              ],
+              "pricing_model": null
+            },
+            "market_position": {
+              "target_audience": "Food lovers across India",
+              "unique_value_proposition": "Better food for more people delivered to your doorstep.",
+              "competitive_advantages": [
+                "3,00,000+ restaurants",
+                "800+ cities",
+                "3 billion+ orders delivered"
+              ]
+            },
+            "company_culture": {
+              "values": null,
+              "work_environment": null,
+              "team_highlights": null
+            },
+            "additional_info": {
+              "certifications": null,
+              "partnerships": null,
+              "notable_achievements": [
+                "India’s #1 food delivery app",
+                "Top savings program for food lovers"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot Review": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Trustpilot Review Analyser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Trustpilot Review Analyser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Website Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trustpilot Review Analyser": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Website Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetCompanyInfos": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items5": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetCompanyInfos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Analysis": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "90688cf9-ac1b-43a7-ad58-ddc4c4588320",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eae46237f0b03e1e21495b9d127d17ad71e5e7504c7d7b1084f9a3d34657c561"
+  },
+  "id": "lrum7TbUsZKeCii6",
+  "tags": []
+}

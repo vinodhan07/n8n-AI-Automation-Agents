@@ -6,67 +6,68 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
-        0
+        1552,
+        592
       ],
-      "id": "8ae8e41a-a3f8-4292-893d-6b8f073b0023",
+      "id": "d963dbeb-37ec-4dfd-93fc-d89084776d5e",
       "name": "When clicking ‘Test workflow’"
     },
     {
       "parameters": {
         "documentId": {
           "__rl": true,
-          "value": "1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk",
+          "value": "1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c",
           "mode": "list",
-          "cachedResultName": "Company Domain",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit?usp=drivesdk"
+          "cachedResultName": "company domains",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit#gid=0"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c/edit#gid=0"
         },
         "options": {}
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        220,
-        0
+        1776,
+        592
       ],
-      "id": "6084bc8d-ff36-4f54-a67b-17fe538cbab2",
+      "id": "4e5d564c-a90b-4fba-b84d-059245f12086",
       "name": "Google Sheets",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "BABF9fd2GiPmlycd",
-          "name": "Google Sheets Cred"
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
         }
       }
     },
     {
       "parameters": {
+        "batchSize": null,
         "options": {}
       },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        440,
-        0
+        2000,
+        592
       ],
-      "id": "a921544d-b11c-44b2-a79f-650e06783efc",
+      "id": "cac6a950-8ed3-44c8-9186-6a9116f05fda",
       "name": "Loop Over Items"
     },
     {
       "parameters": {
-        "url": "=https://r.jina.ai/builtwith.com/{{ $('Google Sheets').item.json['Company Domain'] }}",
+        "url": "=https://s.jina.ai//builtwith.com/{{ $('Google Sheets').item.json['Company Domain'] }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer jina_5272ae9198de429682132d2c2b7293c4xCPzLb_6bxR0n0Yi681_hZqOjNzk"
+              "value": "Bearer jina_95189cd20de940f79c3fcb1ec6eddcfb9N4QmE5iwdqBwAiBhMmW2mSboVnk"
             }
           ]
         },
@@ -75,10 +76,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
-        0
+        2224,
+        592
       ],
-      "id": "30308cde-3ac4-4db5-b876-64649acb551b",
+      "id": "76288866-4df8-410c-a796-c0517717c305",
       "name": "Tech technologies sourcing"
     },
     {
@@ -97,35 +98,11 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.6,
       "position": [
-        880,
-        0
+        2448,
+        592
       ],
-      "id": "9e83ac75-1105-435a-b458-4b0675724d20",
+      "id": "6e4b0482-6750-4b8c-b027-d77dd72c6738",
       "name": "Basic LLM Chain"
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-4o-mini"
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        840,
-        220
-      ],
-      "id": "66c83535-a2cd-4dd0-8767-f927425ebafc",
-      "name": "OpenAI Chat Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "9WpWmiE8A7Gl3BYM",
-          "name": "OpenAi account"
-        }
-      }
     },
     {
       "parameters": {
@@ -134,10 +111,10 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.2,
       "position": [
-        1020,
-        220
+        2592,
+        816
       ],
-      "id": "52c4782a-addf-44eb-b070-51191a0c68e1",
+      "id": "eb08327e-92db-48a6-8fd8-9a541176e6c0",
       "name": "Structured Output Parser"
     },
     {
@@ -145,27 +122,27 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk",
+          "value": "1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c",
           "mode": "list",
-          "cachedResultName": "Company Domain",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit?usp=drivesdk"
+          "cachedResultName": "company domains",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Sheet1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bBYjCCJBthT55Q6KP8PEig_CylRnUxE17K2NorOptjk/edit#gid=0"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1A7zqVa2D2fzP1sPuz_RPvL1n22-8a0nOe5fe1d4oK2c/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "Company Domain": "={{ $('Google Sheets').item.json['Company Domain'] }}",
-            "Hosting & Servers": "={{ $json.output.technologies['Hosting & Servers'].join(', ') }}",
-            "CMS & Content Management": "={{ $json.output.technologies['CMS & Content Management'].join(', ') }}",
-            "Analysis & Tracking Tools": "={{ $json.output.technologies['Analysis & Tracking Tools'].join(',') }}",
-            "Security & Performance": "={{ $json.output.technologies['Security & Performance'].join(', ') }}",
-            "Other Technologies": "={{ $json.output.technologies['Other technologies'].join(\", \") }}"
+            "Hosting & Servers": "={{ $json.output.technologies['Hosting & Servers'].join('. ') }}",
+            "CMS & Content Management": "={{ $json.output.technologies['CMS & Content Management'].join('. ') }}",
+            "Analysis & Tracking Tools": "={{ $json.output.technologies['Analysis & Tracking Tools'].join('. ') }}",
+            "Security & Preferences": "={{ $json.output.technologies['Security & Performance'].join('. ') }}",
+            "other Technologies": "={{ $json.output.technologies['Other technologies'].join('. ') }}"
           },
           "matchingColumns": [
             "Company Domain"
@@ -209,8 +186,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "Security & Performance",
-              "displayName": "Security & Performance",
+              "id": "Security & Preferences",
+              "displayName": "Security & Preferences",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -218,8 +195,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "Other Technologies",
-              "displayName": "Other Technologies",
+              "id": "other Technologies",
+              "displayName": "other Technologies",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -235,15 +212,34 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1240,
-        0
+        2800,
+        592
       ],
-      "id": "53cbf134-e27d-4bda-82dd-abc6e3e9680a",
+      "id": "27d41ec7-e2c3-4327-9090-eb910abc2bbe",
       "name": "Google Sheets1",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "BABF9fd2GiPmlycd",
-          "name": "Google Sheets Cred"
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        784
+      ],
+      "id": "d2cbceb4-d977-433a-9e4e-318d304e3b0e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DJVt176L1kX6wF7d",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     }
@@ -295,17 +291,6 @@
         ]
       ]
     },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Basic LLM Chain",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Structured Output Parser": {
       "ai_outputParser": [
         [
@@ -338,17 +323,28 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "9b5c5050-795a-4891-adfb-03c2877e0689",
+  "versionId": "de2569a5-bc9f-45dc-a0b1-55160dc318c9",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "eae46237f0b03e1e21495b9d127d17ad71e5e7504c7d7b1084f9a3d34657c561"
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
   },
-  "id": "qhMK0dSEuklgqmze",
+  "id": "icxx3Q3uIYx8gcty",
   "tags": []
 }

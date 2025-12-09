@@ -1,0 +1,612 @@
+{
+  "name": "HR agent pre-screening",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1792,
+        720
+      ],
+      "id": "25c21088-b2d2-4ab4-befd-ed6b2e0fcd12",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "attachment_0",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "32006130-bc96-42d4-b7e2-d580ddc91089"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f080824e-4237-4959-af6a-74b9d9a3c8ea",
+                    "leftValue": "attachment_0",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1488,
+        416
+      ],
+      "id": "fb16df3e-3a02-48da-a554-7444fdc0ed0f",
+      "name": "Switch1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2080,
+        576
+      ],
+      "id": "117420a0-9928-4d80-ba8b-2f14dd800432",
+      "name": "Gmail Trigger1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Apply",
+              "description": "Contains a job application from a candidate seeking a position at our organization"
+            },
+            {
+              "category": "Doesn't apply",
+              "description": "The candidate is not a job application"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "=Analyze the email text and identify if it's a job application. Classify as:\n- \"Apply\" if it's a job application\n- \"Doesn't apply\" if it's not a job application\n\nReturn your answer as a simple JSON object with only the category value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        528
+      ],
+      "id": "19fd4d1c-f797-4a49-b170-ab9edca05d88",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        576
+      ],
+      "id": "e15e45c5-1685-4124-b06c-8f4030321781",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "attachment_0",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1MRswirfLqLdOd4_ysDFLI05pgsDjnq1p",
+          "mode": "list",
+          "cachedResultName": "CV INTERVIEW",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1MRswirfLqLdOd4_ysDFLI05pgsDjnq1p"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1200,
+        320
+      ],
+      "id": "9520694c-7314-4b64-9ea7-5f182f5d2950",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xHQNoF0xKXeeUsEE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        784
+      ],
+      "id": "16de2882-7b08-4d46-b828-0a1b2e552828",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -992,
+        320
+      ],
+      "id": "5f98c279-de7e-4dc9-b9b2-dfe05e8260f1",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xHQNoF0xKXeeUsEE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -752,
+        480
+      ],
+      "id": "3fec7276-e77e-4d1e-8546-9aafbcb419dc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the current information from the received candidate and score between 0 to 10 the said candidate, 0 meaning not a good fit for the position, 10 being outstanding for the job.\n\nThe actual position being open is: Business Development Representative (BDR) Role for Lead Gen Man | Remote/Hybrid\n\nAbout Us  \nAt FIN AI, we don’t do boring B2B marketing. We’ve redefined what lead generation means with B-Skool — the no-BS, all-results system that’s helped 1,500+ members generate over 17,000 sales. From DFY outreach systems to expert coaching and plug-and-play templates, we’re all about helping people close deals faster.\n\nForget lectures and outdated playbooks — we move fast, test faster, and build lead machines that never stop.\n\nRole Overview  \nWe’re looking for a Sales Development Representative (SDR) who’s hungry to learn, focused on outcomes, and ready to drive pipeline growth. You’ll lead with research, outreach, and qualification to keep discovery calls flowing and calendars full.\n\nThis role is about momentum and execution — not checking boxes.\n\nWhat You’ll Be Doing  \n- Research and identify ideal prospects using platforms like Clay, Apollo, and LinkedIn  \n- Launch personalized, high-impact outreach via email, DMs, and phone  \n- Schedule discovery calls for the founder and sales team  \n- Maintain clean, accurate CRM records and activity tracking  \n\nWhat You Bring  \n- 1+ year of B2B sales experience (SaaS, AI, or agency background preferred)  \n- Strong verbal and written communication skills  \n- Comfortable navigating sales tools and CRM systems  \n- Solid understanding of enterprise buying behavior and automation tools  \n- Degree optional — performance matters more than paper  \n\nWhat We Offer  \n- Base salary: $100K–$150K plus commission  \n- Professional development budget  \n- Remote-first setup with flexible work hours  \n- Direct access to founder Manthan and a sharp, growth-minded team  \n\n\nSee the extracted PDF information: \n\nProvide some key insight on why this candidate is a good fit for the position as well",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a helpful HR assistant. Your goal is to analyze the CV of the candidate and see if the candidate is a good candidate for the position."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -608,
+        480
+      ],
+      "id": "4d59fae9-1bb2-4947-b68e-3eb1352e9422",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        720
+      ],
+      "id": "d1c340cc-d612-442c-b282-1a3236fb0b22",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n \"candidate\": {\n   \"first_name\": \"string\",\n   \"last_name\":\"string\",\n   \"email\": \"string\",\n   \"location\": \"string\",\n   \"phone\": \"string\"\n },\n \"summary\": {\n   \"years_experience\": \"number\",\n   \"current_role\": \"string\", \n   \"key_achievements\": [\"string\"],\n   \"technical_skills\": [\"string\"]\n },\n \"fit_score\": {\n   \"overall\": \"number\",\n   \"breakdown\": {\n     \"experience\": \"number\",\n     \"technical_skills\": \"number\", \n     \"achievements\": \"number\",\n     \"education\": \"number\"\n   },\n   \"reasoning\": [\"string\"]\n }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        704
+      ],
+      "id": "f3383fa5-5eaf-4254-ba6e-f1aa336f8573",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1VEa2MmYdVkQQaDqPYOzg0q_3bdOdRkIXc3lYmJXExoQ",
+          "mode": "list",
+          "cachedResultName": "HR Screening n8n Lecture",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VEa2MmYdVkQQaDqPYOzg0q_3bdOdRkIXc3lYmJXExoQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VEa2MmYdVkQQaDqPYOzg0q_3bdOdRkIXc3lYmJXExoQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "First Name": "={{ $json.output.candidate.first_name }}",
+            "Last Name": "={{ $json.output.candidate.last_name }}",
+            "Email": "={{ $json.output.candidate.email }}",
+            "Email Content": "={{ $('Gmail Trigger1').item.json.headers.subject }}",
+            "Summary": "={{ $json.output.summary.years_experience }} of {{ $json.output.summary.current_role }}",
+            "CV ": "={{ $('Upload file').item.json.webViewLink }}",
+            "Scoring": "=Overall Score = {{ $json.output.fit_score.overall }}\nExperience = {{ $json.output.fit_score.breakdown.experience }}\nTechnical = {{ $json.output.fit_score.breakdown.technical_skills }}\nAchievements = {{ $json.output.fit_score.breakdown.achievements }}\nEducation = {{ $json.output.fit_score.breakdown.education }}",
+            "Quick Read": "={{ $json.output.fit_score.reasoning[0] }} {{ $json.output.fit_score.reasoning[1] }} {{ $json.output.fit_score.reasoning[2] }} {{ $json.output.fit_score.reasoning[3] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Content",
+              "displayName": "Email Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CV ",
+              "displayName": "CV ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scoring",
+              "displayName": "Scoring",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quick Read",
+              "displayName": "Quick Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -288,
+        464
+      ],
+      "id": "9a6dd242-1870-4cae-965e-a333d25212dc",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger1').item.json.id }}",
+        "emailType": "text",
+        "message": "=Thank you for your application and for taking the next step toward your career goals. We admire your ambition and will be reviewing your profile soon. Wishing you continued success throughout the hiring process!\n\nBest Regards,\nTeam FinAI",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        288
+      ],
+      "id": "bcebf474-a34a-4943-939c-8ebb31512bec",
+      "name": "Reply to a message",
+      "webhookId": "77d15c94-16c7-43fa-a309-8d7af07c79a4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UIARHEblCg8FJk9t",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "be5d4e62-7fdd-4d02-811a-9adbddc1951a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "coxLKGB4H599owCy",
+  "tags": []
+}
