@@ -266,7 +266,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer jina_5272ae9198de429682132d2c2b7293c4xCPzLb_6bxR0n0Yi681_hZqOjNzk"
+              "value": "Bearer <JINA_AI_TOKEN>"
             }
           ]
         },
@@ -424,7 +424,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer jina_4f903129e8c24ab69414d1eaafea0ab86ls8ETpPqw4PUFmK7u_j-1KVH37z"
+              "value": "=Bearer <JINA_AI_TOKEN>"
             }
           ]
         },
@@ -653,7 +653,7 @@
             },
             {
               "name": "api_key",
-              "value": "97add513ca411ba8bea8efcb52dbcd2f6b659a24d651ec9f36aa61d4612f3f7a"
+              "value": "<SERPAPI_API_KEY>"
             }
           ]
         },

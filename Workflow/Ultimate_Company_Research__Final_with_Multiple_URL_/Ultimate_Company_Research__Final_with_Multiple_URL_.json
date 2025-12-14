@@ -114,7 +114,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer jina_b1dd9623bb414709a4e15cf089e77a9dMCDV0ayl9tVM3XaTqWRNi4ztHROj"
+              "value": "=Bearer <JINA_AI_TOKEN>"
             }
           ]
         },

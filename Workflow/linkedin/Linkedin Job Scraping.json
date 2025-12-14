@@ -443,7 +443,7 @@
     },
     {
       "parameters": {
-        "url": "=https://emailverifier.reoon.com/api/v1/verify?email={{ $json.result.email }}&key=g6xLcBxlp0D1ikToWrvqzrrJtraaQbbB&mode=quick",
+        "url": "=https://emailverifier.reoon.com/api/v1/verify?email={{ $json.result.email }}&key=<REOON_API_KEY>&mode=quick",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -946,7 +946,7 @@
           "parameters": [
             {
               "name": "X-API-KEY",
-              "value": "dwAWTd05budmOYB0eAL4bgaERFMvthdEaRqyIAao="
+              "value": "<HEYREACH_API_KEY>"
             },
             {
               "name": "Content-Type",
@@ -1034,7 +1034,7 @@
             },
             {
               "name": "Authorization",
-              "value": "Bearer <apify_api_>"
+              "value": "Bearer <APIFY_API_TOKEN>"
             }
           ]
         },
@@ -1109,7 +1109,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer n7OcDqcWTf4w1XEZLmQwM0zA"
+              "value": "Bearer <ANYMAILFINDER_TOKEN>"
             }
           ]
         },

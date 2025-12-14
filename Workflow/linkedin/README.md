@@ -1,181 +1,132 @@
-# 🌟 n8n AI Automation Agents
+# LinkedIn Job Scraping & Lead Enrichment Automation (n8n)
 
-![Banner](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpV4cHk20oPG93VkN89oIN3pF5a4Sxs471ZceNxiMw8nEZfghg4l4ogUOjwG4s3lj4SQ&usqp=CAU)
+This repository contains an advanced **n8n automation workflow** that scrapes LinkedIn job listings, enriches company and decision-maker data, finds and verifies emails, generates personalized icebreakers using AI, and pushes qualified leads into Google Sheets and outreach platforms.
 
-## 🚀 Overview
-n8n AI Automation Agents is a collection of powerful, ready‑to‑use AI‑driven automation workflows designed for n8n.
-This repository provides end‑to‑end AI agents, automation logic, multi‑service integrations, and production‑ready workflow templates.
+The workflow is designed for **lead generation, recruitment sourcing, and outbound sales automation** with minimal manual effort.
 
 ---
 
-## 🏷️ Badges
+## 🚀 Key Features
 
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![License](https://img.shields.io/badge/license-MIT-orange)
-
----
-
-## 📦 Features
-- 🤖 Pre‑built AI automation agents  
-- 🔌 API‑ready workflows  
-- 🧠 Integrations with OpenAI, Gemini, and more  
-- 🗂 Organized structure for easy navigation  
-- ⚡ Fast import and setup  
-- 🖼 Workflow diagrams included  
+- 🔍 Scrapes LinkedIn job listings using **Apify**
+- 🏢 Filters companies based on employee count
+- 🧹 Removes duplicate companies automatically
+- 👤 Identifies HR / decision makers
+- 📧 Finds professional emails using multiple enrichment tools
+- ✅ Verifies emails to ensure deliverability
+- 🌐 Scrapes company websites for contextual data
+- 🤖 Generates AI-based personalized icebreakers (OpenAI)
+- 📊 Stores clean leads in **Google Sheets**
+- 📬 (Optional) Pushes leads to outreach tools like **Smartlead** and **HeyReach**
 
 ---
 
-## 🛠 Installation & Setup
+## 🧠 Workflow Overview
 
-### **1. Clone Repository**
-```bash
-git clone https://github.com/vinodhan07/n8n-AI-Automation-Agents.git
-cd n8n-AI-Automation-Agents
-```
+### High-Level Flow
 
-### **2. Run n8n**
-#### Option A — Desktop App  
-Download from: https://n8n.io/download
-
-#### Option B — Docker  
-```yaml
-version: '3'
-services:
-  n8n:
-    image: n8nio/n8n
-    ports:
-      - 5678:5678
-    volumes:
-      - ~/.n8n:/home/node/.n8n
-```
-
-Run:
-```bash
-docker-compose up -d
-```
+1. Manual Trigger  
+2. LinkedIn Job Scraping (Apify)  
+3. Company Size Filtering  
+4. Duplicate Removal  
+5. Company Name Cleanup  
+6. Decision Maker Discovery  
+7. Email Discovery  
+8. Email Verification  
+9. Company Website Scraping  
+10. AI Icebreaker Generation  
+11. Google Sheets Lead Storage  
+12. Outreach Tool Integration (Optional)
 
 ---
 
-## 📥 Importing Workflows
-1. Open n8n → **Workflows**
-2. Click **Import from File**
-3. Select any `.json` file from `/workflows`
-4. Add API Keys / credentials
-5. Activate workflow
+## 🛠️ Tech Stack & Services Used
+
+| Tool / Service | Purpose |
+|---------------|---------|
+| n8n | Workflow automation |
+| Apify | LinkedIn job scraping |
+| Anymailfinder / Prospeo | Email discovery |
+| Reoon | Email verification |
+| OpenAI (GPT-4 / GPT-4.1) | Icebreaker generation |
+| Google Sheets | Lead storage |
+| Smartlead | Email outreach (optional) |
+| HeyReach | LinkedIn campaign automation (optional) |
 
 ---
 
-# 🧩 Workflow Diagrams
+## 📂 Files in This Repository
 
-### **AI Content Generator**
 ```
-[Trigger] → [AI Text Generator] → [Formatter] → [Email/Notion Output]
-```
-
-### **AI Telegram Assistant**
-```
-[Telegram Trigger] → [AI Agent] → [Response Builder] → [Telegram Reply]
-```
-
-### **Automated Multi‑Agent System**
-```
-[Webhook] → [Classifier Agent] → [Task Router] → [Worker Agents] → [Output]
+.
+├── Linkedin Job Scraping.json
+├── README.md
 ```
 
 ---
 
-# 📚 Workflow Descriptions
+## ⚙️ Setup Instructions
 
-## 1. AI Content Writer
-Generates long‑form content using OpenAI/Gemini, formats it, and sends as email or document.
+### 1️⃣ Import Workflow into n8n
 
-## 2. Telegram AI Assistant  
-Reads incoming chat messages, uses AI to generate answers, replies in real-time.
-
-## 3. Automation Decision Engine  
-Evaluates user input and routes tasks to the correct agent.
-
-## 4. Multi‑Agent Automation Bot  
-Runs several AI agents in coordination — planner, executor, verifier.
-
-## 5. Notification Broadcaster  
-Sends bulk messages automatically via email, Telegram, or API.
+1. Open your **n8n dashboard**
+2. Go to **Workflows → Import**
+3. Upload `Linkedin Job Scraping.json`
+4. Save the workflow
 
 ---
 
-## 📁 Folder Structure
-```
-n8n-AI-Automation-Agents/
-│
-├── workflows/       # JSON workflow exports
-├── assets/          # Images / diagrams
-├── README.md        # Documentation
-└── LICENSE
-```
+### 2️⃣ Configure Required Credentials
+
+You must add the following credentials in n8n:
+
+- Apify API Token  
+- OpenAI API Key  
+- Email Finder API (Anymailfinder / Prospeo)  
+- Email Verification API (Reoon)  
+- Google Sheets OAuth  
+- Smartlead API (optional)  
+- HeyReach API (optional)
+
+⚠️ Never commit real API keys to GitHub.
 
 ---
 
-## 🎨 Branding Style
-- Modern layout  
-- Icon‑driven sections  
-- Clear workflow visuals  
-- Professional structure  
+## 🤖 AI Icebreaker Logic
+
+The OpenAI node generates short, natural first-line compliments based on the company website.
+
+Rules:
+- Under 15 words  
+- Conversational tone  
+- Based on real website content  
+- No generic phrases  
 
 ---
 
-## 🛠 Requirements
+## 📤 Outreach Integrations (Optional)
 
-Node.js (if self-hosting n8n)
-n8n installed
-API keys for integrated services
-Basic automation knowledge
-Stable internet connection
+- **Smartlead** – Email campaigns  
+- **HeyReach** – LinkedIn campaigns  
 
----
-
-## 🔄 Updates & Maintenance
-
-This repo will continue to grow with:
-✨ New workflows
-🔧 Improvements to existing ones
-🐛 Bug fixes
-📚 Updated documentation
-
-Stay tuned — more workflows dropping soon! 🚀
+Nodes are disabled by default.
 
 ---
 
-## 🤝 Contributing
+## ⚠️ Legal Notice
 
-Contributions are welcome!
-Fork the repo
-Add your workflow
-Submit a pull request ✔
+This project is for educational and internal automation purposes only.  
+Ensure compliance with LinkedIn ToS, GDPR, and local data protection laws.
 
 ---
 
-## ⭐ Support & Connect
+## 👨‍💻 Author
 
-If you find this project useful, please star ⭐ the repository — it helps a lot!
-Have suggestions or want to collaborate?
-Open an Issue anytime
-Contact via LinkedIn / Email (see profile)
+**Vinodhan V A**  
+Automation Engineer | n8n | AI Agents  
 
----
-
-## 💡 Use Cases Covered
-
-Social Media Automation
-AI Content Generation
-Data Scraping & Processing
-Lead Capture & CRM
-Email / Messaging Automation
-DevOps Monitoring
-ETL & Data Pipelines
+GitHub: https://github.com/vinodhan07
 
 ---
 
-## 🔥 Let’s automate the boring stuff!
-
-Thanks for visiting — happy automating with n8n! 🤖⚙️
+⭐ Star the repo if you find it useful!
