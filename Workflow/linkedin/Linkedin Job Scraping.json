@@ -1,0 +1,1539 @@
+{
+  "name": "Linkedin Job Scraping",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f75c0843-d5a8-4043-be4f-4f5fcb09b456",
+              "name": "companyName",
+              "value": "={{ $json.companyName.replace(/,?\\s*(LLC|Ltd|LTD|Ltd\\.?|Inc|Limited|Inc\\.?|Incorporated|Corp\\.?|Corporation|Company|Group|Holdings|International|Solutions|Technologies|Enterprises|Partners|Association|PLC|S\\.A\\.|GmbH|Co\\.|Services)\\.?$/i, '').trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3648,
+        1168
+      ],
+      "id": "511a2a48-7357-4ee2-b44e-1336c081e740",
+      "name": "Clean up company"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "42080606-1599-479b-9242-8d2b2625868d",
+              "leftValue": "={{ $('Remove Duplicates1').item.json.jobPosterName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3856,
+        1168
+      ],
+      "id": "a01ab4a2-f910-438e-b98c-fdb4ff812ea9",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.prospeo.io/email-finder",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-KEY",
+              "value": "<API_KEY>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "first_name",
+              "value": "={{ $('Remove Duplicates1').item.json.jobPosterName.split(\" \")[0] }}"
+            },
+            {
+              "name": "last_name",
+              "value": "={{ $('Remove Duplicates1').item.json.jobPosterName.split(\" \")[1] }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $('Remove Duplicates1').item.json.companyWebsite }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4416,
+        960
+      ],
+      "id": "ef20f874-f2bf-4931-add2-b7ff3a929656",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a5ea2caa-4e59-4d50-9a0a-a5cfce8f4e5e",
+              "leftValue": "={{ $json.response.email_status }}",
+              "rightValue": "=VALID",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        4640,
+        960
+      ],
+      "id": "be278d64-7e3d-498e-801b-d960d1de062d",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Remove Duplicates1').item.json.companyWebsite }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5168,
+        960
+      ],
+      "id": "877de08e-25de-48d5-95bc-67199c58772e",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.data }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        5376,
+        960
+      ],
+      "id": "f91160ec-1e87-4e66-9363-2993b0177d34",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4864,
+        960
+      ],
+      "id": "bfefecb2-0268-483d-b3c2-dcc2ba618663",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini-2025-04-14",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI-2025-04-14"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You're crafting very short, natural-sounding compliments or congratulations for cold outreach emails based on the company's website content.\n\nInstructions:\nFirst priority: Look carefully for specific recent events, awards, achievements, milestones, events, notable numbers, or news mentioned on their website.\n\nIf nothing specific is found, give a simple, believable compliment based on something that seems authentic or genuinely noteworthy about the company's approach.\n\nRules:\n- Keep it under 15 words\n- Sound natural and conversational \n- Be specific and authentic\n- Avoid being too formal or overly enthusiastic",
+              "role": "system"
+            },
+            {
+              "content": "=Data: {{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        5600,
+        960
+      ],
+      "id": "66de37b0-96ff-4922-a478-5e828dad3f2e",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1p3rkUfNBvPv7JoPG_SyM-CBmQGklhj5pVo5ZKGrNdR0",
+          "mode": "list",
+          "cachedResultName": "Linkedin job Scarping Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1p3rkUfNBvPv7JoPG_SyM-CBmQGklhj5pVo5ZKGrNdR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TEC-BGAGVYamSN248wCNwKRZd-Rb-64ZfQwO2GKFNoU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "First Name": "={{ $('Loop Over Items').item.json.response.first_name }}",
+            "Last Name": "={{ $('Loop Over Items').item.json.response.last_name }}",
+            "Title": "={{ $('Remove Duplicates1').item.json.jobPosterTitle }}",
+            "Email": "={{ $('Filter1').item.json.response.email }}",
+            "Company Name": "={{ $('Clean up company').item.json.companyName }}",
+            "Domain": "={{ $('HTTP Request1').item.json.response.domain }}",
+            "First Liner": "={{ $json.message.content }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Domain",
+              "displayName": "Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Liner",
+              "displayName": "First Liner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        5968,
+        960
+      ],
+      "id": "c7417163-e619-4b35-a819-416b28a8e6a5",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4304,
+        1264
+      ],
+      "id": "da85847b-6817-41c4-9be1-653598e793c7",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4688,
+        1440
+      ],
+      "id": "46bdb445-7848-4e54-8fbf-adac4efc0107",
+      "name": "Wait",
+      "webhookId": "2f104ac3-656b-401a-8289-4ecb5ffb58ac"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "980b69df-29aa-4d60-83aa-d62c9ce4a272",
+                    "leftValue": "={{ $('Wait').item.json.result.email }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1a707bcb-12b6-48dd-85b3-ce656958a387",
+                    "leftValue": "={{ $('Wait').item.json.error.status }}",
+                    "rightValue": 404,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4784,
+        1264
+      ],
+      "id": "db906dba-efdc-45cd-a110-8510d07f9fce",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5008,
+        1344
+      ],
+      "id": "17faa54b-a0f4-46cb-972e-c78deb9f6de5",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5408,
+        1648
+      ],
+      "id": "2c89e8fd-9d7e-4b2e-aa06-8794b0c01a19",
+      "name": "Wait1",
+      "webhookId": "2f104ac3-656b-401a-8289-4ecb5ffb58ac"
+    },
+    {
+      "parameters": {
+        "url": "=https://emailverifier.reoon.com/api/v1/verify?email={{ $json.result.email }}&key=g6xLcBxlp0D1ikToWrvqzrrJtraaQbbB&mode=quick",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5216,
+        1504
+      ],
+      "id": "8ed01cf6-8f16-4060-8067-1d5640d3b10b",
+      "name": "Email Verification"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bc1609ee-893d-45b1-8eb3-ca462f65bbb6",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "valid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        5344,
+        1328
+      ],
+      "id": "6ecc2da5-ed88-400b-be3f-00dd14b6624c",
+      "name": "Filter2"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Remove Duplicates1').item.json.companyWebsite }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5808,
+        1328
+      ],
+      "id": "77f47c5b-73d4-4b4b-8067-307b88ef1e78",
+      "name": "Company Web Data1"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.data }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        5984,
+        1328
+      ],
+      "id": "35547cae-1d3e-4ab5-8718-a5cd7288e21c",
+      "name": "Markdown1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5600,
+        1328
+      ],
+      "id": "cfc2e130-7247-4480-a761-c8f335cc8b7e",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1p3rkUfNBvPv7JoPG_SyM-CBmQGklhj5pVo5ZKGrNdR0",
+          "mode": "list",
+          "cachedResultName": "Linkedin job Scarping Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1p3rkUfNBvPv7JoPG_SyM-CBmQGklhj5pVo5ZKGrNdR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1p3rkUfNBvPv7JoPG_SyM-CBmQGklhj5pVo5ZKGrNdR0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "First Name": "={{ $('Loop Over Items3').item.json.response.first_name }}",
+            "Last Name": "={{ $('Loop Over Items3').item.json.response.last_name }}",
+            "Title": "=",
+            "First Liner": "={{ $json.message.content }}",
+            "Domain": "={{ $('Loop Over Items3').item.json.response.domain }}",
+            "Email": "={{ $('Filter1').item.json.response.email }}",
+            "Company Name": "={{ $('Clean up company').item.json.companyName }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Domain",
+              "displayName": "Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Liner",
+              "displayName": "First Liner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        6496,
+        1328
+      ],
+      "id": "a28b2558-6911-4003-83ff-31537f7b5997",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://server.smartlead.ai/api/v1/campaigns/1769229/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"lead_list\": [\n    {\n      \"first_name\": $('Google Sheets2').item.json['first name'],\n      \"last_name\": $('Google Sheets2').item.json['last name'],\n      \"email\": $('Google Sheets2').item.json.Emails,\n      \"company_name\": $('Google Sheets2').item.json['company name'],\n      \"website\": $json.Website,\n      \"location\": $('Google Sheets2').item.json.country,\n      \"custom_fields\": {\n        \"video\": $json['Video Html'],\n        \"icebreaker\": $('Icebreakers').item.json.output\n      },\n      \"linkedin_profile\": $json['linkedin url'],\n      \"company_url\": $json.company_linkedin\n    }\n  ],\n  \"settings\": {\n    \"ignore_global_block_list\": true,\n    \"ignore_unsubscribe_list\": true,\n    \"ignore_duplicate_leads_in_other_campaign\": false\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6960,
+        1328
+      ],
+      "id": "c45af001-8791-4d97-8ae4-c6763331d5de",
+      "name": "Smartlead_Add_Lead",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        7520,
+        1328
+      ],
+      "id": "1176b5dd-1a63-4740-b353-fc68e4d5baaa",
+      "name": "Wait6",
+      "webhookId": "840320d3-0bf6-4233-8816-918dbfd11af7"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1_MtCy0V_JZiZNCnXjlBjQrCNcZWUyVLUVjqi8GcWdps",
+          "mode": "list",
+          "cachedResultName": "scrape google for linkedin url",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_MtCy0V_JZiZNCnXjlBjQrCNcZWUyVLUVjqi8GcWdps/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_MtCy0V_JZiZNCnXjlBjQrCNcZWUyVLUVjqi8GcWdps/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "linkedin url": "={{ $('Enrich Prospects').item.json.linkedin }}",
+            "Lead added to email outreach tool": "={{ ($json.status == \"1\" || $json.ok == true) ? \"YES\" : \"NO\" }}"
+          },
+          "matchingColumns": [
+            "linkedin url"
+          ],
+          "schema": [
+            {
+              "id": "linkedin url",
+              "displayName": "linkedin url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Emails",
+              "displayName": "Emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_linkedin",
+              "displayName": "company_linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nb of empolyees",
+              "displayName": "nb of empolyees",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first name",
+              "displayName": "first name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last name",
+              "displayName": "last name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company name",
+              "displayName": "company name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qualify grade",
+              "displayName": "qualify grade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qualification potential",
+              "displayName": "qualification potential",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company description",
+              "displayName": "company description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company size on linkedin",
+              "displayName": "company size on linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "specialities",
+              "displayName": "specialities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updates",
+              "displayName": "updates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "follower count",
+              "displayName": "follower count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "icebreaker",
+              "displayName": "icebreaker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead added to email outreach tool",
+              "displayName": "Lead added to email outreach tool",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        7344,
+        1328
+      ],
+      "id": "545e50cb-685f-43d8-a045-7b7dc5aa076f",
+      "name": "Google Sheets2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.heyreach.io/api/public/campaign/AddLeadsToCampaign",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "dwAWTd05budmOYB0eAL4bgaERFMvthdEaRqyIAao="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "text/plain"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"campaignId\": 115122,\n    \"accountLeadPairs\": [\n        {\n            \"linkedInAccountId\": 71043,\n            \"lead\": {\n                \"firstName\": \"{{ $json['first name'] }}\",\n                \"lastName\": \"{{ $json['last name'] }}\",\n                \"location\": \"{{ $json.country }}\",\n                \"summary\": \"{{ $json.title }} @ {{ $json['company name'] }}\",\n                \"companyName\": \"{{ $json['company name'] }}\",\n                \"position\": \"{{ $json.title }}\",\n                \"about\": \"{{ $json['company description'] }}\",\n                \"emailAddress\": \"{{ $json.Emails }}\",\n                \"profileUrl\": \"https://{{ $json['linkedin url'] }}\"\n            }\n        }\n    ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7168,
+        1328
+      ],
+      "id": "a82b9a36-ddcd-46cf-a561-ea976444f30d",
+      "name": "Linkedin Campaign"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        6720,
+        1392
+      ],
+      "id": "2643c977-56b9-4c26-b556-923736cbbab7",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You're crafting very short, natural-sounding compliments or congratulations for cold outreach emails based on the company's website content.\n\nInstructions:\nFirst priority: Look carefully for specific recent events, awards, achievements, milestones, events, notable numbers, or news mentioned on their website.\n\nIf nothing specific is found, give a simple, believable compliment based on something that seems authentic or genuinely noteworthy about the company's approach.\n\nRules:\n- Keep it under 15 words\n- Sound natural and conversational \n- Be specific and authentic\n- Avoid being too formal or overly enthusiastic",
+              "role": "system"
+            },
+            {
+              "content": "=Data: {{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        6144,
+        1328
+      ],
+      "id": "d98f1a4a-c62f-4a3a-8e7d-e8e79493db16",
+      "name": "Icebreaker",
+      "credentials": {
+        "openAiApi": {
+          "id": "7f2CCFhwLDOuyatv",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/hKByXkMQaC5Qt9UMN/run-sync-get-dataset-items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer apify_api_HKzRrsx5UchXn6TeD5BZvP7MlIKNdz3eOX13"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"count\": 100,\n    \"scrapeCompany\": true,\n    \"urls\": [\n        \"https://www.linkedin.com/jobs/search-results/?currentJobId=4327248132&keywords=sdr&origin=JOB_SEARCH_PAGE_JOB_FILTER&referralSearchId=YSFNMq1%2Fi4RMH3KRbR%2FQLg%3D%3D&f_TPR=r604800\"\n    ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2992,
+        1168
+      ],
+      "id": "dd4a1664-1e4c-4e75-a557-45c60c14f43e",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01911d0a-6ca9-4adb-9a6d-4d89f7d333af",
+              "leftValue": "={{ $json.companyEmployeesCount }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        3184,
+        1168
+      ],
+      "id": "99b68f2d-c836-4542-a588-a2e407d314cf",
+      "name": "Filter3"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "companyLinkedinUrl",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        3408,
+        1168
+      ],
+      "id": "538965f8-7700-4779-a188-e3c90390d978",
+      "name": "Remove Duplicates1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anymailfinder.com/v5.0/search/decision-maker.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer n7OcDqcWTf4w1XEZLmQwM0zA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{ $('HTTP Request3').item.json.companyWebsite }}"
+            },
+            {
+              "name": "decision_maker_category",
+              "value": "hr"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4480,
+        1344
+      ],
+      "id": "9da42226-5d78-4f60-83eb-3debf58185b1",
+      "name": "Decision Maker Finder",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        1168
+      ],
+      "id": "05752a59-0116-4bdf-bfb4-a8b9d896f6ef",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Clean up company": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decision Maker Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Filter2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Verification": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Web Data1": {
+      "main": [
+        [
+          {
+            "node": "Markdown1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown1": {
+      "main": [
+        [
+          {
+            "node": "Icebreaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Company Web Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smartlead_Add_Lead": {
+      "main": [
+        [
+          {
+            "node": "Linkedin Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait6": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets2": {
+      "main": [
+        [
+          {
+            "node": "Wait6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkedin Campaign": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Smartlead_Add_Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Icebreaker": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Filter3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter3": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Clean up company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Maker Finder": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c6c0aee4-9f44-4f46-bdc9-c5df446a74bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "BSqpW8orEPkpi6Ai",
+  "tags": []
+}
