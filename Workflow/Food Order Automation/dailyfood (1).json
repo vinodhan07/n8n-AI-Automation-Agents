@@ -1,0 +1,614 @@
+{
+  "name": "dailyfood",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse Telegram order message and extract order details\nconst message = $input.item.json.message?.text || '';\nconst from = $input.item.json.message?.chat?.id?.toString() || '';\n\n// Extract Name using regex patterns (stop at newline)\nconst namePatterns = [\n  /name[:\\s]+([a-zA-Z\\s]+?)(?:\\n|$)/i,\n  /from[:\\s]+([a-zA-Z\\s]+?)(?:\\n|$)/i,\n  /^([a-zA-Z\\s]+?)(?:\\n|[-,])/,\n];\n\nlet customerName = '';\nfor (const pattern of namePatterns) {\n  const match = message.match(pattern);\n  if (match && match[1]) {\n    customerName = match[1].trim();\n    break;\n  }\n}\n\n// Extract Dish name using regex patterns (stop at newline)\nconst dishPatterns = [\n  /dish[:\\s]+([a-zA-Z\\s]+?)(?:\\n|$)/i,\n  /order[:\\s]+([a-zA-Z\\s]+?)(?:\\n|$)/i,\n  /item[:\\s]+([a-zA-Z\\s]+?)(?:\\n|$)/i,\n];\n\nlet dishName = '';\nfor (const pattern of dishPatterns) {\n  const match = message.match(pattern);\n  if (match && match[1]) {\n    dishName = match[1].trim();\n    break;\n  }\n}\n\n// Extract Quantity using regex patterns\nconst quantityPatterns = [\n  /quantity[:\\s]+(\\d+)/i,\n  /qty[:\\s]+(\\d+)/i,\n  /(\\d+)\\s*(?:pcs|pieces|plates?|servings?)/i,\n  /x\\s*(\\d+)/i,\n];\n\nlet quantity = 1; // Default to 1 if not found\nfor (const pattern of quantityPatterns) {\n  const match = message.match(pattern);\n  if (match && match[1]) {\n    quantity = parseInt(match[1]);\n    break;\n  }\n}\n\n// Determine meal type based on current time\nconst now = new Date();\nconst currentHour = now.getHours();\nlet mealType = '';\n\nif (currentHour >= 6 && currentHour < 10) {\n  mealType = 'Breakfast';\n} else if (currentHour >= 11 && currentHour < 15) {\n  mealType = 'Lunch';\n} else if (currentHour >= 19 && currentHour < 22) {\n  mealType = 'Dinner';\n} else if (currentHour >= 22 || currentHour < 6) {\n  mealType = 'MidNight-Dinner';\n} else {\n  mealType = 'Other';\n}\n\n// Format order date and time\nconst orderDate = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst orderTime = now.toTimeString().split(' ')[0]; // HH:MM:SS\n\n// Return parsed data\nreturn {\n  customerName: customerName || 'Unknown',\n  dishName: dishName || 'Not specified',\n  quantity: quantity,\n  mealType: mealType,\n  orderDate: orderDate,\n  orderTime: orderTime,\n  from: from\n};"
+      },
+      "id": "111be893-4d44-4b7e-bcde-2a05cb948fe2",
+      "name": "Parse Order Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -11248,
+        6768
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "Date",
+              "value": "={{ $json.orderDate }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "Time",
+              "value": "={{ $json.orderTime }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "Meal_Type",
+              "value": "={{ $json.mealType }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "Customer_Name",
+              "value": "={{ $json.customerName }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "Dish_Name",
+              "value": "={{ $json.dishName }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "Quantity",
+              "value": "={{ $json.quantity }}",
+              "type": "number"
+            },
+            {
+              "id": "id-7",
+              "name": "fileName",
+              "value": "={{ 'Food_Orders_' + $('Parse Order Message').item.json.orderDate + '.xlsx' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "customerPhone",
+              "value": "={{ $('Parse Order Message').item.json.from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "id": "a15e9259-41d1-4c3c-89e1-64be1b7518c5",
+      "name": "Format Order Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -10800,
+        6672
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "34cf2bc5-cfb6-46ab-b74c-ca4aa86f8947",
+      "name": "Combine Existing and New Orders",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -10416,
+        6672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "fileName": "={{ $('Format Order Data').item.json.fileName }}",
+          "headerRow": true,
+          "sheetName": "Orders"
+        }
+      },
+      "id": "f1bfb3a2-15e6-4343-8c58-4540eb1013cd",
+      "name": "Update Excel File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -10192,
+        6672
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "b5d3143a-1006-4d2b-81ef-4a895e671d01",
+      "name": "Telegram Order Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -11696,
+        6768
+      ],
+      "webhookId": "e684dca3-5b20-4772-8262-096d72eb50fd",
+      "credentials": {
+        "telegramApi": {
+          "id": "Pi1TfhBM5rClVfg2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Format Order Data').item.json.customerPhone }}",
+        "text": "=\n\n✅ Order Confirmed!\n\nName: {{ $('Format Order Data').item.json.Customer_Name }}\nDish: {{ $('Format Order Data').item.json.Dish_Name }}\nQuantity: {{ $('Format Order Data').item.json.Quantity }}\nMeal Type: {{ $('Format Order Data').item.json.Meal_Type }}\n\nYour order has been recorded successfully!\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "9f7ba3d8-7d60-4828-a987-4a9af7db9b50",
+      "name": "Send Order Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -9744,
+        6704
+      ],
+      "webhookId": "7bcb136c-56cc-459c-8c93-d3d85f3e7061",
+      "credentials": {
+        "telegramApi": {
+          "id": "Pi1TfhBM5rClVfg2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "originalMessage",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "chatId",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "userName",
+              "value": "={{ $json.message.from.first_name || 'User' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "messageId",
+              "value": "={{ $json.message.message_id }}",
+              "type": "number"
+            },
+            {
+              "id": "id-5",
+              "name": "userId",
+              "value": "={{ $json.message.from.id }}",
+              "type": "number"
+            },
+            {
+              "id": "id-6",
+              "name": "username",
+              "value": "={{ $json.message.from.username }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "messageDate",
+              "value": "={{ $json.message.date }}",
+              "type": "number"
+            },
+            {
+              "id": "id-8",
+              "name": "chatType",
+              "value": "={{ $json.message.chat.type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "id": "5f49d153-824f-4e59-9682-dd37fcc828b3",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -11472,
+        6768
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.customerName }}",
+              "rightValue": "Unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.dishName }}",
+              "rightValue": "Not specified",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.quantity }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "feb5f6c9-ad6d-44e7-9c0b-66c469b13be6",
+      "name": "Validate Order Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -11024,
+        6768
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Workflow Configuration').item.json.chatId }}",
+        "text": "=📋 Welcome to Our Order System\n\nTo place your order, please provide the following details in this format:\n\nName: [Your Full Name]\nDish: [Dish Name]\nQuantity: [Number]\n\nExample:\nName: John Doe\nDish: Chicken Biryani\nQuantity: 2\n\nPlease ensure all fields are filled correctly for quick processing of your order.\n\nThank you! 🙏",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "84e8e1e6-9d1e-4ee2-810f-236424f6d215",
+      "name": "Send Invalid Order Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -10528,
+        6880
+      ],
+      "webhookId": "18ea70ab-2138-4119-bd02-b034431e8cea",
+      "credentials": {
+        "telegramApi": {
+          "id": "Pi1TfhBM5rClVfg2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "Date",
+              "value": "={{ $json.Date }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "Time",
+              "value": "={{ $json.Time }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "Meal_Type",
+              "value": "={{ $json.Meal_Type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "Customer_Name",
+              "value": "={{ $json.Customer_Name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "Dish_Name",
+              "value": "={{ $json.Dish_Name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "Quantity",
+              "value": "={{ $json.Quantity }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "id": "103c9c71-1452-4350-a520-dcf9e424ad9f",
+      "name": "Prepare New Order Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -10608,
+        6672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1OKuQTX3PgsdqVMxSv05klNKTT92emWc1NYSFH9-BZlA",
+          "mode": "list",
+          "cachedResultName": "Dailyfood",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OKuQTX3PgsdqVMxSv05klNKTT92emWc1NYSFH9-BZlA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OKuQTX3PgsdqVMxSv05klNKTT92emWc1NYSFH9-BZlA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data.0.Date": "={{ $('Combine Existing and New Orders').item.json.data[0].Date }}",
+            "data.0.Time": "={{ $('Combine Existing and New Orders').item.json.data[0].Time }}",
+            "data.0.Meal_Type": "={{ $('Combine Existing and New Orders').item.json.data[0].Meal_Type }}",
+            "data.0.Customer_Name": "={{ $('Combine Existing and New Orders').item.json.data[0].Customer_Name }}",
+            "data.0.Dish_Name": "={{ $('Combine Existing and New Orders').item.json.data[0].Dish_Name }}",
+            "data.0.Quantity": "={{ $('Combine Existing and New Orders').item.json.data[0].Quantity }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "data.0.Date",
+              "displayName": "data.0.Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data.0.Time",
+              "displayName": "data.0.Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data.0.Meal_Type",
+              "displayName": "data.0.Meal_Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data.0.Customer_Name",
+              "displayName": "data.0.Customer_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data.0.Dish_Name",
+              "displayName": "data.0.Dish_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data.0.Quantity",
+              "displayName": "data.0.Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -9984,
+        6672
+      ],
+      "id": "d6d4f47d-87a3-420e-8cdc-8607ef37d33f",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DgqpldeLcHVhYzJD",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Order Message": {
+      "main": [
+        [
+          {
+            "node": "Validate Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Order Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare New Order Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Existing and New Orders": {
+      "main": [
+        [
+          {
+            "node": "Update Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Excel File": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Order Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Parse Order Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Order Data": {
+      "main": [
+        [
+          {
+            "node": "Format Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Invalid Order Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare New Order Row": {
+      "main": [
+        [
+          {
+            "node": "Combine Existing and New Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Order Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Asia/Kolkata",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": -1,
+    "saveDataErrorExecution": "all"
+  },
+  "versionId": "b2a3f4cd-0590-4758-b883-c254c3aa9a8a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "faa6db30da4574a4f3d0778b60ee1a8f64b380f130528571fa96b612b5a98e9e"
+  },
+  "id": "jASO1p0lMJx166P1xvFg5",
+  "tags": []
+}
