@@ -1,0 +1,309 @@
+{
+  "name": "Login Database using Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "=46274abe-dd92-471b-b9ab-d551570de467",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -176,
+        16
+      ],
+      "id": "f0d33004-5e89-433b-b327-be8a59b3c783",
+      "name": "Webhook",
+      "webhookId": "46274abe-dd92-471b-b9ab-d551570de467"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c8b4fd3d-374c-4418-b9ee-3620873278d7",
+              "name": "Date & Time",
+              "value": "={{$now.toFormat('yyyy-MM-dd')}} & {{$now.toFormat('HH:mm:ss')}}",
+              "type": "string"
+            },
+            {
+              "id": "4564d298-95c5-4e13-b2b1-36ce48e70fad",
+              "name": "login_id",
+              "value": "={{ $json.body.login_id }}",
+              "type": "string"
+            },
+            {
+              "id": "bb133c08-1954-4f0a-89d3-e8a7b150e077",
+              "name": "password",
+              "value": "={{ $json.body.password }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        16
+      ],
+      "id": "f1c97d88-d389-4dc5-b6b9-6e9967aa1af7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nreturn [{\n  json: {\n    login_id: $json.login_id,\n    password_hash: crypto\n      .createHash('sha256')\n      .update($json.password)\n      .digest('hex'),\n    date: $json.date,\n    time: $json.time\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        16
+      ],
+      "id": "5e3fc473-390d-4957-b5e3-1be85e24b759",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a security assistant.\n\nAnalyze the following login data.\n\nReturn ONLY valid JSON with:\n- valid_email (true or false)\n\nLogin ID: {{$json.login_id}}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        448,
+        16
+      ],
+      "id": "42e21555-ccbb-43a1-9433-10e5222f7c59",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        320,
+        224
+      ],
+      "id": "cbc4cf77-c177-4911-943a-8fbca5488397",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DJVt176L1kX6wF7d",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\n\n// Remove markdown and parse JSON\nconst clean = raw\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst parsed = JSON.parse(clean);\n\nreturn [{\n  json: {\n    login_id: $json.login_id,\n    password_hash: $json.password_hash,\n    valid_email: parsed.valid_email,\n    date: $json.date,\n    time: $json.time\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        16
+      ],
+      "id": "e8dbf287-f252-4686-80a6-80ecabdce2c8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Bg6kf7i31L57XaUXCM7tkQy_BxuDpQyxP6Ywg5AIAeA",
+          "mode": "list",
+          "cachedResultName": "Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bg6kf7i31L57XaUXCM7tkQy_BxuDpQyxP6Ywg5AIAeA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bg6kf7i31L57XaUXCM7tkQy_BxuDpQyxP6Ywg5AIAeA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Login ID ": "={{ $('Code in JavaScript').item.json.login_id }}",
+            " Password Hash ": "={{ $('Code in JavaScript').item.json.password_hash }}",
+            "Date & Time ": "={{ $('Edit Fields').item.json['Date & Time'] }}",
+            "Valid_Email": "={{ $json.valid_email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date & Time ",
+              "displayName": "Date & Time ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Login ID ",
+              "displayName": "Login ID ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Password Hash ",
+              "displayName": " Password Hash ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Valid_Email",
+              "displayName": "Valid_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1008,
+        16
+      ],
+      "id": "87547955-1336-4f90-b44e-69247213efe6",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bCSjvO8TeUKSJXqF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"success\",\n  \"message\": \"Login data saved successfully\"\n}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1216,
+        16
+      ],
+      "id": "ea90a5a2-b4d6-459a-b944-53a2a155bfaf",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2dcaedf4-9461-454d-9e1c-aa02f86df014",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b9048e3e9325bb15acc5591fc1dc7122d689cc65d8bf0bdd3d027f2c48a3f8f"
+  },
+  "id": "Qp1dL8FctmbcajBf",
+  "tags": []
+}
